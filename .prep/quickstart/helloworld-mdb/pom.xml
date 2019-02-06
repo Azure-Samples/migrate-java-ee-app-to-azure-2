@@ -43,15 +43,15 @@
     </licenses>
 
     <dependencies>
-       <dependency>
+        <dependency>
             <groupId>org.apache.qpid</groupId>
             <artifactId>qpid-jms-client</artifactId>
-            <version>0.35.0</version>
+            <version>0.40.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.qpid</groupId>
             <artifactId>proton-j</artifactId>
-            <version>0.28.0</version>
+            <version>0.31.0</version>
         </dependency>
         <dependency>
             <groupId>javax.enterprise</groupId>
