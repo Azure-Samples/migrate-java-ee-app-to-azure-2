@@ -48,7 +48,7 @@ import javax.jms.TextMessage;
 @TransactionManagement(TransactionManagementType.BEAN)
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
 @MessageDriven(name = "HelloWorldQueueMDB", activationConfig = {
-        @ActivationConfigProperty(propertyName = "connectionFactory", propertyValue = "java:global/remoteJMS/SBF}"),
+        @ActivationConfigProperty(propertyName = "connectionFactory", propertyValue = "java:global/remoteJMS/SBF"),
         @ActivationConfigProperty(propertyName = "destination", propertyValue = "java:global/remoteJMS/jmstestqueue"),
         @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
         @ActivationConfigProperty(propertyName = "acknowledgeMode", propertyValue = "Auto-acknowledge")})
