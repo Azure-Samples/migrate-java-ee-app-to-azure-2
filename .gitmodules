@@ -1,0 +1,4 @@
+[submodule "quickstart"]
+	path = quickstart
+	url = https://github.com/wildfly/quickstart.git
+	branch = 14.x
