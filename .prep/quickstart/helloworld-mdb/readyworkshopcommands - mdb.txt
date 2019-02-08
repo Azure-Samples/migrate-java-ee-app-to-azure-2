@@ -1,0 +1,127 @@
+### Step ONE - Clone and Prep
+mkdir readyworkshop
+cd readyworkshop
+git clone --recurse-submodules https://github.com/sadigopu/migrate-java-ee-app-to-azure-2
+cd migrate-java-ee-app-to-azure-2
+yes | cp -rf .prep/* .
+
+cd quickstart/helloworld-mdb
+mvn package -Dmaven.test.skip=true
+
+### Deploy to Wildfly in App Service Linux
+az login
+cp set-env-variables-template.sh .scripts/set-env-variables.sh
+
+### Modify .scripts/set-env-variables.sh - WebApp
+vi .scripts/set-env-variables.sh
+. .scripts/set-env-variables.sh
+
+az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
+                               --resource-group ${RESOURCEGROUP_NAME}
+
+az servicebus queue create --name ${DESTINATION_QUEUE} \
+                           --namespace-name ${DEFAULT_SBNAMESPACE} \
+                           --resource-group ${RESOURCEGROUP_NAME}
+
+az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+                                              --namespace-name ${DEFAULT_SBNAMESPACE} \
+                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --resource-group ${RESOURCEGROUP_NAME} \
+                                              --rights Listen Send
+
+az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+                                                 --namespace-name ${DEFAULT_SBNAMESPACE} \
+                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --resource-group ${RESOURCEGROUP_NAME}
+                                                
+
+### Modify .scripts/set-env-variables.sh
+#set the DEFAULT_PASSWORD variable to the value of 'primaryKey' from the result of the previous 'keys' CLI command and re-source the environment variables.
+vi .scripts/set-env-variables.sh
+#From the values displayed for the keys, grab the <b>primaryConnectionString": "Endpoint</b> value and put it into .scripts/jndi.properties file for key connectionfactory.SBF.  Also fill the queue value
+vi .scripts/jndi.properties
+. .scripts/set-env-variables.sh
+
+### Deploy Webapp to Azure
+### Add in plugins
+<build>
+ <plugins> 
+    <!--*************************************************-->
+    <!-- Deploy to WildFly in App Service Linux          -->
+    <!--*************************************************-->
+    <plugin>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-webapp-maven-plugin</artifactId>
+        <version>1.5.1</version>
+        <configuration>
+            <!-- Web App information -->
+            <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
+            <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
+            <appName>${WEBAPP_NAME}</appName>
+            <region>${REGION}</region>
+            <!-- Java Runtime Stack for Web App on Linux-->
+            <linuxRuntime>wildfly 14-jre8</linuxRuntime>
+        </configuration>
+    </plugin>
+  </plugins>
+</build>
+
+#========== Deploy ==================
+mvn azure-webapp:deploy
+
+### Add AppSettings for Webapp
+az webapp config appsettings set \
+ --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} \
+ --settings \
+ DEFAULT_CONNECTION_FACTORY=${DEFAULT_CONNECTION_FACTORY} \
+ DEFAULT_DESTINATION=${DEFAULT_DESTINATION} \
+ INITIAL_CONTEXT_FACTORY=org.apache.qpid.jms.jndi.JmsInitialContextFactory \
+ DEFAULT_SBNAMESPACE=${DEFAULT_SBNAMESPACE} \
+ DEFAULT_USERNAME=${DEFAULT_USERNAME} \
+ DEFAULT_PASSWORD=${DEFAULT_PASSWORD} \
+ DESTINATION_QUEUE=${DESTINATION_QUEUE} \
+ PROVIDER_URL=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000
+
+### Get FTP values
+az webapp deployment list-publishing-profiles -g ${RESOURCEGROUP_NAME}  -n ${WEBAPP_NAME}
+## grab userName and userPWD values and set in env variables.  REMOVE the extra \ char in userName
+
+### FTP all files
+pwd
+cd .scripts
+ftp
+open <ftp site>
+ascii
+passive
+
+put startup.sh
+cd site/deployments/tools
+put commands.cli
+put module.xml
+put jndi.properties
+binary
+mput *.jar
+
+bye
+
+## Remove the ^M EOL characters through the ssh
+# ======== first terminal window =========
+az webapp remote-connection create --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} &
+
+# ======== second terminal window ========
+ssh root@localhost -p <port>
+vi startup.sh
+
+#Restart the webapp
+az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+
+# View the logs
+az webapp log tail --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME}
+
+
+
+
+
+
