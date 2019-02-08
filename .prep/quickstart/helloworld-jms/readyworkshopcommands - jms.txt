@@ -1,0 +1,55 @@
+mvn clean install
+### Step ONE - Clone and Prep
+mkdir readyworkshop
+cd readyworkshop
+git clone --recurse-submodules https://github.com/sadigopu/migrate-java-ee-app-to-azure-2
+cd migrate-Java-EE-app-to-azure-2
+yes | cp -rf .prep/* .
+
+cd quickstart/helloworld-jms
+mvn package -Dmaven.test.skip=true
+
+### Deploy to Azure - Create the Service Bus
+az login
+mkdir .scripts
+cp set-env-variables-template.sh .scripts/set-env-variables.sh
+vi .scripts/set-env-variables.sh
+. .scripts/set-env-variables.sh
+
+az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
+                               --resource-group ${RESOURCEGROUP_NAME}
+
+az servicebus queue create --name ${DESTINATION_QUEUE} \
+                           --namespace-name ${DEFAULT_SBNAMESPACE} \
+                           --resource-group ${RESOURCEGROUP_NAME}
+
+az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+                                              --namespace-name ${DEFAULT_SBNAMESPACE} \
+                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --resource-group ${RESOURCEGROUP_NAME} \
+                                              --rights Listen Send
+
+az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+                                                 --namespace-name ${DEFAULT_SBNAMESPACE} \
+                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --resource-group ${RESOURCEGROUP_NAME}
+                                                
+
+### Modify .scripts/set-env-variables.sh
+vi .scripts/set-env-variables.sh
+#set the DEFAULT_PASSWORD variable to the value of 'primaryKey' from the result of the previous 'keys' CLI command and re-source the environment variables.
+. .scripts/set-env-variables.sh
+
+#Run the JMS API console app
+mvn clean compile exec:java
+
+
+
+
+
+
+
+
+
+
+
