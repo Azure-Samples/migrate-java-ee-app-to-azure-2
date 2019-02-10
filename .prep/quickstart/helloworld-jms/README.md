@@ -137,32 +137,37 @@ Bash shell script template.
 ```bash
 mkdir .scripts
 cp set-env-variables-template.sh .scripts/set-env-variables.sh
+```
+#Modify the environment variables in set-env-variables.sh. Set the values of DEFAULT_SBNAMESPACE, SB_QUEUE,
+# SB_SAS_POLICY  to names with which a Servicebus namepace, queue within the namespace and SAS Policy for the queue will get created. Alternatively, if you are reusing an exisiting Servicebus - you can fill in all the details including the SAS Key. Else, the queue with the Send&Listen rights for given Policy will get created and then with the last "authorization-rule" CLI command, you will get the SAS Key and modify the set-env-variables.sh file once again
 
-#Modify the environment variables in set-env-variables.sh
-. .scripts/set-env-variables.sh
+```bash
+vi .scripts/set-env-variables.sh
+
+. .scripts/set-env-variables.sh, 
 
 
 az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
                                --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue create --name ${DESTINATION_QUEUE} \
+az servicebus queue create --name ${SB_QUEUE} \
                            --namespace-name ${DEFAULT_SBNAMESPACE} \
                            --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule create --name ${SB_SAS_POLICY} \
                                               --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --queue-name ${SB_QUEUE} \
                                               --resource-group ${RESOURCEGROUP_NAME} \
                                               --rights Listen Send
 
-az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule keys list --name ${SB_SAS_POLICY} \
                                                  --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --queue-name ${SB_QUEUE} \
                                                  --resource-group ${RESOURCEGROUP_NAME}
                                                 
 ```
 
-From the values displayed for the keys, grab the <b>primarykey</b> value. Open the .scripts/set-env-variables.sh file and set the primaryKey as value for variable DEFAULT_PASSWORD.
+From the values displayed for the keys, grab the <b>primarykey</b> value. Open the .scripts/set-env-variables.sh file and set the primaryKey as value for variable SB_SAS_KEY.
 
 ```bash
 . .scripts/set-env-variables.sh
