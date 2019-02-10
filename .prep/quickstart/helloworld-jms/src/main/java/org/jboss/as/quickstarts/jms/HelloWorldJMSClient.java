@@ -32,14 +32,14 @@ public class HelloWorldJMSClient {
 
     // Set up all the default values
     private static final String DEFAULT_MESSAGE = "Hello, World!";
-    private static final String DEFAULT_CONNECTION_FACTORY = System.getenv("DEFAULT_CONNECTION_FACTORY");
-    private static final String DEFAULT_DESTINATION = System.getenv("DEFAULT_DESTINATION");
+    private static final String DEFAULT_CONNECTION_FACTORY = "SBCF";
+    private static final String DEFAULT_DESTINATION = System.getenv("SB_QUEUE");
     private static final String DEFAULT_MESSAGE_COUNT = "1";
-    private static final String DEFAULT_USERNAME = System.getenv("DEFAULT_USERNAME");
-    private static final String DEFAULT_PASSWORD = System.getenv("DEFAULT_PASSWORD");
-    private static final String INITIAL_CONTEXT_FACTORY = System.getenv("INITIAL_CONTEXT_FACTORY");
+    private static final String DEFAULT_USERNAME = System.getenv("SB_SAS_POLICY");
+    private static final String DEFAULT_PASSWORD = System.getenv("SB_SAS_KEY");
+    private static final String INITIAL_CONTEXT_FACTORY = "org.apache.qpid.jms.jndi.JmsInitialContextFactory";
     private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
-    private static final String DESTINATION_QUEUE = System.getenv("DESTINATION_QUEUE");
+    private static final String DESTINATION_QUEUE = "QUEUE";
 
     public static void main(String[] args) {
 
