@@ -51,12 +51,12 @@ import javax.servlet.http.HttpServletResponse;
             name = "java:/queue/HELLOWORLDMDBQueue",
             interfaceName = "javax.jms.Queue",
             destinationName = "HelloWorldMDBQueue"
-        ),*/
+        ),
         @JMSDestinationDefinition(
             name = "java:/topic/HELLOWORLDMDBTopic",
             interfaceName = "javax.jms.Topic",
             destinationName = "HelloWorldMDBTopic"
-        )
+        )*/
     }
 )
 
