@@ -31,6 +31,7 @@ public class HelloWorldJMSClient {
     private static final Logger log = Logger.getLogger(HelloWorldJMSClient.class.getName());
 
     // Set up all the default values
+    private static final String DEFAULT_MESSAGE = "Hello, World!";
     private static final String DEFAULT_CONNECTION_FACTORY = "SBCF";
     private static final String DEFAULT_DESTINATION = "QUEUE";
     private static final String DEFAULT_USERNAME = System.getenv("SB_SAS_POLICY");
