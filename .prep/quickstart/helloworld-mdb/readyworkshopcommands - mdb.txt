@@ -16,24 +16,24 @@ cp set-env-variables-template.sh .scripts/set-env-variables.sh
 vi .scripts/set-env-variables.sh
 . .scripts/set-env-variables.sh
 
+
 az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
                                --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue create --name ${DESTINATION_QUEUE} \
+az servicebus queue create --name ${SB_QUEUE} \
                            --namespace-name ${DEFAULT_SBNAMESPACE} \
                            --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule create --name ${SB_SAS_POLICY} \
                                               --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --queue-name ${SB_QUEUE} \
                                               --resource-group ${RESOURCEGROUP_NAME} \
                                               --rights Listen Send
 
-az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule keys list --name ${SB_SAS_POLICY} \
                                                  --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --queue-name ${SB_QUEUE} \
                                                  --resource-group ${RESOURCEGROUP_NAME}
-                                                
 
 ### Modify .scripts/set-env-variables.sh
 #set the DEFAULT_PASSWORD variable to the value of 'primaryKey' from the result of the previous 'keys' CLI command and re-source the environment variables.

@@ -142,34 +142,46 @@ Bash shell script template.
 
 ```bash
 cp set-env-variables-template.sh .scripts/set-env-variables.sh
+```
 
-#Modify the environment variables in set-env-variables.sh. If there is existing Service Bus, you can skip the following CLI commands for creating it and fill the details directly
+Modify the environment variables in set-env-variables.sh. Set the values of DEFAULT_SBNAMESPACE, SB_QUEUE,
+ SB_SAS_POLICY  to names with which a Servicebus namepace, queue within the namespace and SAS Policy for the queue will get created along with Send&Listen rights for given Policy;and then with the last "authorization-rule" CLI command, you will get the SAS Key and modify the set-env-variables.sh file once again. If there is existing Service Bus, you can skip the following CLI commands for creating it and fill the details directly
+
+```bash
 vi .scripts/set-env-variables.sh
-. .scripts/set-env-variables.sh
+
+. .scripts/set-env-variables.sh, 
 
 
 az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
                                --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue create --name ${DESTINATION_QUEUE} \
+az servicebus queue create --name ${SB_QUEUE} \
                            --namespace-name ${DEFAULT_SBNAMESPACE} \
                            --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule create --name ${SB_SAS_POLICY} \
                                               --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --queue-name ${SB_QUEUE} \
                                               --resource-group ${RESOURCEGROUP_NAME} \
                                               --rights Listen Send
 
-az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule keys list --name ${SB_SAS_POLICY} \
                                                  --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --queue-name ${SB_QUEUE} \
                                                  --resource-group ${RESOURCEGROUP_NAME}
                                                 
 ```
 
-From the values displayed for the keys, grab the <b>primarykey</b> value. Open the .scripts/set-env-variables.sh file and set the primaryKey as value for variable DEFAULT_PASSWORD.
-From the values displayed for the keys, grab the <b>primaryConnectionString": "Endpoint</b> value and put it into .scripts/jndi.properties file for key connectionfactory.SBF.  Also fill the queue value
+From the values displayed for the keys, grab the <b>primarykey</b> value. Open the .scripts/set-env-variables.sh file and set the primaryKey as value for variable SB_SAS_KEY.
+
+********* IMPORTANT ********************************
+Put the values into .scripts/jndi.properties file for key connectionfactory.SBF and queue. Encrypt  the SB_SAS_KEY before pasting it in, at any site for eg: https://www.url-encode-decode.com/
+
+connectionfactory.SBF=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000&jms.username=<SB_SAS_POLICY>&jms.password=<encrypted SB_SAS_KEY>
+queue.jmstestqueue=<SB_QUEUE>
+
+******************************************************
 
 ```bash
 vi .scripts/set-env-variables.sh
@@ -218,16 +230,13 @@ Set ServiceBus details in the Web app environment as AppSettings :
 
 ```bash
 az webapp config appsettings set \
- --resource-group <RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} \
  --settings \
- DEFAULT_CONNECTION_FACTORY=${DEFAULT_CONNECTION_FACTORY} \
- DEFAULT_DESTINATION=${DEFAULT_DESTINATION} \
- INITIAL_CONTEXT_FACTORY=org.apache.qpid.jms.jndi.JmsInitialContextFactory \
  DEFAULT_SBNAMESPACE=${DEFAULT_SBNAMESPACE} \
- DEFAULT_USERNAME=${DEFAULT_USERNAME} \
- DEFAULT_PASSWORD=${DEFAULT_PASSWORD} \
- DESTINATION_QUEUE=${DESTINATION_QUEUE} \
-  PROVIDER_URL=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000
+ SB_SAS_POLICY=${SB_SAS_POLICY} \
+ SB_SAS_KEY=${SB_SAS_KEY} \
+ SB_QUEUE=${SB_QUEUE} \
+ PROVIDER_URL=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000
    
 ```
 

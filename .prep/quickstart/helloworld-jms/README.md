@@ -154,15 +154,15 @@ az servicebus queue create --name ${SB_QUEUE} \
                            --namespace-name ${DEFAULT_SBNAMESPACE} \
                            --resource-group ${RESOURCEGROUP_NAME}
 
-az servicebus queue authorization-rule create --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule create --name ${SB_SAS_POLICY} \
                                               --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                              --queue-name ${DESTINATION_QUEUE} \
+                                              --queue-name ${SB_QUEUE} \
                                               --resource-group ${RESOURCEGROUP_NAME} \
                                               --rights Listen Send
 
-az servicebus queue authorization-rule keys list --name DEFAULT_USERNAME \
+az servicebus queue authorization-rule keys list --name ${SB_SAS_POLICY} \
                                                  --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                                 --queue-name ${DESTINATION_QUEUE} \
+                                                 --queue-name ${SB_QUEUE} \
                                                  --resource-group ${RESOURCEGROUP_NAME}
                                                 
 ```
