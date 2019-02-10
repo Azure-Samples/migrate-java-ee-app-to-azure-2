@@ -34,12 +34,13 @@ public class HelloWorldJMSClient {
     private static final String DEFAULT_MESSAGE = "Hello, World!";
     private static final String DEFAULT_CONNECTION_FACTORY = "SBCF";
     private static final String DEFAULT_DESTINATION = "QUEUE";
+    private static final String DEFAULT_MESSAGE_COUNT = "1";
     private static final String DEFAULT_USERNAME = System.getenv("SB_SAS_POLICY");
     private static final String DEFAULT_PASSWORD = System.getenv("SB_SAS_KEY");
     private static final String INITIAL_CONTEXT_FACTORY = "org.apache.qpid.jms.jndi.JmsInitialContextFactory";
     private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
-    private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE"); 
-
+    private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE");
+    
     public static void main(String[] args) {
 
         Context namingContext = null;
