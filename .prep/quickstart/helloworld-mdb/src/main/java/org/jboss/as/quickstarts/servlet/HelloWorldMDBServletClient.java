@@ -96,21 +96,30 @@ public class HelloWorldMDBServletClient extends HttpServlet {
         PrintWriter out = resp.getWriter();
         out.write("<h1>Quickstart: Example demonstrates the use of <strong>JMS 2.0</strong> and <strong>EJB 3.2 Message-Driven Bean</strong> in JBoss EAP.</h1>");
         try {
+            private static final String DEFAULT_CONNECTION_FACTORY = "SBCF";
+            private static final String DEFAULT_DESTINATION = "QUEUE";
+            private static final String DEFAULT_MESSAGE_COUNT = "1";
+            private static final String DEFAULT_USERNAME = System.getenv("SB_SAS_POLICY");
+            private static final String DEFAULT_PASSWORD = System.getenv("SB_SAS_KEY");
+            private static final String INITIAL_CONTEXT_FACTORY = "org.apache.qpid.jms.jndi.JmsInitialContextFactory";
+            private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
+            private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE"); 
+        
             MessageProducer producer = null;
             Hashtable<String, String> hashtable = new Hashtable<>();
-            hashtable.put("connectionfactory.SBCF", System.getenv("PROVIDER_URL"));
-            hashtable.put("queue.QUEUE", System.getenv("DESTINATION_QUEUE"));
-            hashtable.put(Context.INITIAL_CONTEXT_FACTORY, System.getenv("INITIAL_CONTEXT_FACTORY"));
+            env.put("connectionfactory.SBCF", PROVIDER_URL);
+            env.put("queue.QUEUE", DESTINATION_QUEUE);
+            hashtable.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
             Context context = new InitialContext(hashtable);
             // Perform the JNDI lookups
-            String connectionFactoryString = System.getProperty("connection.factory", System.getenv("DEFAULT_CONNECTION_FACTORY"));
-            ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
-            String destinationString = System.getProperty("destination", System.getenv("DEFAULT_DESTINATION"));
-            Destination queue  = (Destination) context.lookup(destinationString);
+            String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
+            ConnectionFactory connectionFactory = (ConnectionFactory) namingContext.lookup(connectionFactoryString);
+            String destinationString = System.getProperty("destination",DEFAULT_DESTINATION);
+            Destination destination = (Destination) namingContext.lookup(destinationString);
             boolean useTopic = req.getParameterMap().keySet().contains("topic");
             final Destination destination = useTopic ? topic : queue;
            // Create Context and send Messages
-            try (JMSContext connection = connectionFactory.createContext(System.getenv("DEFAULT_USERNAME"), System.getenv("DEFAULT_PASSWORD"))) {
+            try (JMSContext connection = connectionFactory.createContext(System.getenv("SB_SAS_POLICY"), System.getenv("SB_SAS_KEY"))) {
             out.write("<p>Sending messages to <em>" + destination + "</em></p>");
             out.write("<h2>The following messages will be sent to the destination:</h2>");
             for (int i = 0; i < MSG_COUNT; i++) {
