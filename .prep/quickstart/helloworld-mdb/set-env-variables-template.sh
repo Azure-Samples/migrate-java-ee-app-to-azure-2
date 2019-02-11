@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
-# Azure Environment
+## Resource Group Name
+export RESOURCEGROUP_NAME=<my resource group name>
+export REGION=<my region>
 
-export RESOURCEGROUP_NAME=<my resource group>
+# App Service Linux app name
 export WEBAPP_NAME=<my-webapp-name>
+
+# Compose App Service Linux Plan Name
 export WEBAPP_PLAN_NAME=${WEBAPP_NAME}-appservice-plan
-export REGION=westus
 
 # Supply these secrets for Service Bus
 ## Service Bus secrets

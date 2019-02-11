@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+## Resource Group Name
+export RESOURCEGROUP_NAME=<my resource group name>
+export REGION=<my region>
+
 ## Service Bus secrets
 export DEFAULT_SBNAMESPACE=<my Servicebus namespace>
 export SB_SAS_POLICY=<my Servicebus Send PolicyName>
