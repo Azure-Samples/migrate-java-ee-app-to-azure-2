@@ -41,7 +41,7 @@ public class HelloWorldJMSClient {
     private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
     private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE");
 
-    public static void main(String[] args) {
+  public static void main(String[] args) {
 
         Context namingContext = null;
 
