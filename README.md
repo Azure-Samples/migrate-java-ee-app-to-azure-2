@@ -37,7 +37,7 @@ existing Java EE workloads to Azure, aka:
                * [Test the startup.sh script](#test-the-startupsh-script)
             * [Step 5: Restart the remote WildFly app server](#step-5-restart-the-remote-wildfly-app-server)
             * [Step 6: Stream WildFly/JBoss logs to a dev machine](#step-6-stream-wildflyjboss-logs-to-a-dev-machine)
-            * [Step 7: Open the Message-Driven Enterprise Bean on Azure](#step-7-open-the-message-driven-enterprise-bean-on-azure)
+         * [Open the Message-Driven Enterprise Bean on Azure](#open-the-message-driven-enterprise-bean-on-azure)
          * [Additional Info](#additional-info)
       * [Migrate Java Enterprise App that uses WebSockets](#migrate-java-enterprise-app-that-uses-websockets)
          * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux-1)
@@ -933,7 +933,7 @@ az webapp log tail --name ${WEBAPP_NAME} \
  --resource-group ${RESOURCEGROUP_NAME}
 ```
 
-#### Step 7: Open the Message-Driven Enterprise Bean on Azure
+### Open the Message-Driven Enterprise Bean on Azure
 
 Open the Web app on App Service Linux:
 
