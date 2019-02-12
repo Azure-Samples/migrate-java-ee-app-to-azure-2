@@ -150,32 +150,3 @@ public class HelloWorldMDBServletClient extends HttpServlet {
         doGet(req, resp);
     }
 }
-
-
-/*
-MessageProducer producer = null;
-Hashtable<String, String> hashtable = new Hashtable<>();
-hashtable.put("connectionfactory.SBCF", PROVIDER_URL);
-hashtable.put("queue.QUEUE", DESTINATION_QUEUE);
-hashtable.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-Context context = new InitialContext(hashtable);
-// Perform the JNDI lookups
-String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
-ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
-String destinationString = System.getProperty("destination",DEFAULT_DESTINATION);
-Destination queue = (Destination) context.lookup(destinationString);
-boolean useTopic = req.getParameterMap().keySet().contains("topic");
-final Destination destination = useTopic ? topic : queue;
-// Create Context and send Messages
-try (JMSContext connection = connectionFactory.createContext(System.getenv("SB_SAS_POLICY"), System.getenv("SB_SAS_KEY"))) {
-out.write("<p>Sending messages to <em>" + destination + "</em></p>");
-out.write("<h2>The following messages will be sent to the destination:</h2>");
-for (int i = 0; i < MSG_COUNT; i++) {
-String text = "This is message " + (i + 1);
-connection.createProducer().send(destination,text);
-out.write("Message (" + i + "): " + text + "</br>");
-}
-out.write("<p><i>Go to your JBoss EAP server console or server log to see the result of messages processing.</i></p>");
-}
-} catch( NamingException e) {
- */
