@@ -931,7 +931,6 @@ Open Java Web app remote log stream from a local machine:
 ```bash
 az webapp log tail --name ${WEBAPP_NAME} \
  --resource-group ${RESOURCEGROUP_NAME}
-<<<<<<< HEAD
 ```
 
 ### Open the Message-Driven Enterprise Bean on Azure
