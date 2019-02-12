@@ -96,7 +96,7 @@ public class HelloWorldMDBServletClient extends HttpServlet {
  //  @Resource(lookup = "jmstestqueue")
   //  private Queue queue;
 
-    @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")
+   /* @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")*/
     private Topic topic;
 
     @Override
