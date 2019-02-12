@@ -13,6 +13,38 @@ existing Java EE workloads to Azure, aka:
 - App's messaging subsystem to Azure Service Bus
 - Leverage Web Sockets for interactive Java workloads 
 
+## Table of Contents
+
+   * [Migrate Java EE Apps to Azure](#migrate-java-ee-apps-to-azure)
+      * [Table of Contents](#table-of-contents)
+      * [What you will migrate to cloud](#what-you-will-migrate-to-cloud)
+      * [What you will need](#what-you-will-need)
+      * [Getting Started](#getting-started)
+         * [Step ONE - Clone and Prep](#step-one---clone-and-prep)
+      * [Build Sample Archive](#build-sample-archive)
+      * [Build Console App - send and receive messages to Service Bus using JMS](#build-console-app---send-and-receive-messages-to-service-bus-using-jms)
+         * [Create and Configure Azure Service Bus](#create-and-configure-azure-service-bus)
+         * [Build and Run Console App](#build-and-run-console-app)
+      * [Migrate a message driven enterprise bean to Azure](#migrate-a-message-driven-enterprise-bean-to-azure)
+         * [Prepare Environment](#prepare-environment)
+         * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux)
+         * [Configure JMS Resource Adapter ( JMS RA)](#configure-jms-resource-adapter--jms-ra)
+            * [Step 1: Understand How to configure WildFly](#step-1-understand-how-to-configure-wildfly)
+            * [Step 2 - Upload Startup and Binary Artifacts to App through FTP](#step-2---upload-startup-and-binary-artifacts-to-app-through-ftp)
+               * [Get FTP Deployment Credentials](#get-ftp-deployment-credentials)
+               * [Upload Startup and Binary Artifacts to App through FTP](#upload-startup-and-binary-artifacts-to-app-through-ftp)
+            * [Step 4: Test the JBoss/WildFly Startup Script and CLI Commands to Configure JMS RA](#step-4-test-the-jbosswildfly-startup-script-and-cli-commands-to-configure-jms-ra)
+               * [Test the startup.sh script](#test-the-startupsh-script)
+            * [Step 5: Restart the remote WildFly app server](#step-5-restart-the-remote-wildfly-app-server)
+            * [Step 6: Stream WildFly/JBoss logs to a dev machine](#step-6-stream-wildflyjboss-logs-to-a-dev-machine)
+            * [Step 7: Open the Message-Driven Enterprise Bean on Azure](#step-7-open-the-message-driven-enterprise-bean-on-azure)
+         * [Additional Info](#additional-info)
+      * [Migrate Java Enterprise App that uses WebSockets](#migrate-java-enterprise-app-that-uses-websockets)
+         * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux-1)
+         * [Open the Migrated App on App Service Linux](#open-the-migrated-app-on-app-service-linux)
+      * [Congratulations!](#congratulations)
+      * [Resources](#resources)
+
 ## What you will migrate to cloud
 
 You will migrate WildFly/JBoss sample apps to Azure. These
@@ -924,7 +956,7 @@ On the log stream from App Service Linux, you will see:
 
 For additional info, please refer to: 
  
- - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter).
+ - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter)
  - [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
  - [Open SSH session from your development machine to App Service Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
 
@@ -1057,56 +1089,26 @@ open https://websocket-hello-app.azurewebsites.net
 
 
 
-## Features
+## Congratulations!
 
-This project framework provides the following features:
-
-* Feature 1
-* Feature 2
-* ...
-
-## Getting Started
-
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
+Congratulations!! You migrated 
+existing Java enterprise workloads to Azure, aka app to App Service Linux and 
+app's messaging system to Azure Service Bus.
 
 ## Resources
 
-(Any additional resources or related projects)
+- [Java Enterprise Guide for App Service on Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-java-enterprise)
+- [Maven Plugin for Azure App Service](https://docs.microsoft.com/en-us/java/api/overview/azure/maven/azure-webapp-maven-plugin/readme?view=azure-java-stable)
+- [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter)
+- [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
+- [Opening an SSH connection from your development machine](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
+- [Azure for Java Developers](https://docs.microsoft.com/en-us/java/azure/)
 
-- Link to supporting information
-- Link to similar sample
-- ...
+---
+
+This project has adopted 
+the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). 
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or 
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) 
+with any additional 
+questions or comments.
