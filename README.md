@@ -13,6 +13,38 @@ existing Java EE workloads to Azure, aka:
 - App's messaging subsystem to Azure Service Bus
 - Leverage Web Sockets for interactive Java workloads 
 
+## Table of Contents
+
+   * [Migrate Java EE Apps to Azure](#migrate-java-ee-apps-to-azure)
+      * [Table of Contents](#table-of-contents)
+      * [What you will migrate to cloud](#what-you-will-migrate-to-cloud)
+      * [What you will need](#what-you-will-need)
+      * [Getting Started](#getting-started)
+         * [Step ONE - Clone and Prep](#step-one---clone-and-prep)
+      * [Build Sample Archive](#build-sample-archive)
+      * [Build Console App - send and receive messages to Service Bus using JMS](#build-console-app---send-and-receive-messages-to-service-bus-using-jms)
+         * [Create and Configure Azure Service Bus](#create-and-configure-azure-service-bus)
+         * [Build and Run Console App](#build-and-run-console-app)
+      * [Migrate a message driven enterprise bean to Azure](#migrate-a-message-driven-enterprise-bean-to-azure)
+         * [Prepare Environment](#prepare-environment)
+         * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux)
+         * [Configure JMS Resource Adapter ( JMS RA)](#configure-jms-resource-adapter--jms-ra)
+            * [Step 1: Understand How to configure WildFly](#step-1-understand-how-to-configure-wildfly)
+            * [Step 2 - Upload Startup and Binary Artifacts to App through FTP](#step-2---upload-startup-and-binary-artifacts-to-app-through-ftp)
+               * [Get FTP Deployment Credentials](#get-ftp-deployment-credentials)
+               * [Upload Startup and Binary Artifacts to App through FTP](#upload-startup-and-binary-artifacts-to-app-through-ftp)
+            * [Step 4: Test the JBoss/WildFly Startup Script and CLI Commands to Configure JMS RA](#step-4-test-the-jbosswildfly-startup-script-and-cli-commands-to-configure-jms-ra)
+               * [Test the startup.sh script](#test-the-startupsh-script)
+            * [Step 5: Restart the remote WildFly app server](#step-5-restart-the-remote-wildfly-app-server)
+            * [Step 6: Stream WildFly/JBoss logs to a dev machine](#step-6-stream-wildflyjboss-logs-to-a-dev-machine)
+         * [Open the Message-Driven Enterprise Bean on Azure](#open-the-message-driven-enterprise-bean-on-azure)
+         * [Additional Info](#additional-info)
+      * [Migrate Java Enterprise App that uses WebSockets](#migrate-java-enterprise-app-that-uses-websockets)
+         * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux-1)
+         * [Open the Migrated App on App Service Linux](#open-the-migrated-app-on-app-service-linux)
+      * [Congratulations!](#congratulations)
+      * [Resources](#resources)
+
 ## What you will migrate to cloud
 
 You will migrate WildFly/JBoss sample apps to Azure. These
@@ -350,7 +382,7 @@ INFO: Received message with content Hello, World!
 ## Migrate a message driven enterprise bean to Azure
 
 
-## Prepare Environment
+### Prepare Environment
 
 Change directory to MDB:
 
@@ -381,7 +413,7 @@ Then, set environment variables:
 source .scripts/set-env-variables.sh
 ```
 
-## Deploy App to App Service Linux
+### Deploy App to App Service Linux
 
 Add [Maven Plugin for Azure App Service](https://github.com/Microsoft/azure-maven-plugins/blob/develop/azure-webapp-maven-plugin/README.md) configuration to POM.xml and deploy
 Message-Driven Bean to WildFly in App Service Linux:
@@ -882,15 +914,8 @@ Deleted /home/site/deployments/tools/jndi.properties
  az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
  az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
  ```
- 
- For additional info, please refer to: 
- 
- - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter).
- - [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
- - [Open SSH session from your development machine to App Service Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
 
-
-## Trouble Shoot Message-Driven Enterprise Bean on Azure by Viewing Logs
+#### Step 6: Stream WildFly/JBoss logs to a dev machine
 
 Configure logs for the deployed Java Web 
 app in App Service Linux:
@@ -906,57 +931,184 @@ Open Java Web app remote log stream from a local machine:
 ```bash
 az webapp log tail --name ${WEBAPP_NAME} \
  --resource-group ${RESOURCEGROUP_NAME}
+```
 
-## Features
+### Open the Message-Driven Enterprise Bean on Azure
 
-This project framework provides the following features:
+Open the Web app on App Service Linux:
 
-* Feature 1
-* Feature 2
-* ...
+```bash
+https://helloworld-mdb.azurewebsites.net
+```
 
-## Getting Started
+![](./media/helloworld-mdb.jpg)
 
-### Prerequisites
+On the log stream from App Service Linux, you will see:
 
-(ideally very short, if any)
+```bash
+2019-02-12 06:37:47,821 INFO  [org.apache.qpid.jms.sasl.SaslMechanismFinder] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Best match for SASL auth was: SASL-PLAIN
+2019-02-12 06:37:47,828 INFO  [org.apache.qpid.jms.JmsConnection] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Connection ID:48eae295-9d89-4aa6-85e8-f26a9b43147e:1 connected to remote Broker: amqps://jmsservice.servicebus.windows.net
+2019-02-12T06:37:47.822173661Z 06:37:47,821 INFO  [org.apache.qpid.jms.sasl.SaslMechanismFinder] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Best match for SASL auth was: SASL-PLAIN
+2019-02-12T06:37:47.830453730Z 06:37:47,828 INFO  [org.apache.qpid.jms.JmsConnection] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Connection ID:48eae295-9d89-4aa6-85e8-f26a9b43147e:1 connected to remote Broker: amqps://jmsservice.servicebus.windows.net
+```
 
-- OS
-- Library version
-- ...
+### Additional Info
 
-### Installation
+For additional info, please refer to: 
+ 
+ - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter)
+ - [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
+ - [Open SSH session from your development machine to App Service Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
 
-(ideally very short)
+## Migrate Java Enterprise App that uses WebSockets
 
-- npm install [package name]
-- mvn install
-- ...
+Change directory to the WebSocket app directory:
 
-### Quickstart
-(Add steps to get up and running quickly)
+```bash
+cd ../websocket-hello
+```
 
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
+Set environment variables for binding secrets at runtime, 
+particularly Azure Resource Group name and App Service Linux info. 
+You can 
+export them to your local environment, say using the supplied
+Bash shell script template.
+
+```bash
+mkdir .scripts
+cp set-env-variables-template.sh .scripts/set-env-variables.sh
+```
+
+Modify `.scripts/set-env-variables.sh` and set Azure Resource Group name, 
+and App Service Linux info.
+
+Then, set environment variables:
+ 
+```bash
+source .scripts/set-env-variables.sh
+```
+
+### Deploy App to App Service Linux
+
+Add [Maven Plugin for Azure App Service](https://github.com/Microsoft/azure-maven-plugins/blob/develop/azure-webapp-maven-plugin/README.md) configuration to POM.xml and deploy
+Message-Driven Bean to WildFly in App Service Linux:
+
+```xml    
+<plugins> 
+
+    <!--*************************************************-->
+    <!-- Deploy to WildFly in App Service Linux          -->
+    <!--*************************************************-->
+       
+    <plugin>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-webapp-maven-plugin</artifactId>
+        <version>1.5.3</version>
+        <configuration>
+    
+            <!-- Web App information -->
+           <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
+           <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
+            <appName>${WEBAPP_NAME}</appName>
+            <region>${REGION}</region>
+    
+            <!-- Java Runtime Stack for Web App on Linux-->
+            <linuxRuntime>wildfly 14-jre8</linuxRuntime>
+            
+        </configuration>
+    </plugin>
+    ...
+</plugins>
+```
+
+Build and Deploy Message-Driven Bean to App Service Linux:
+
+```bash
+mvn package
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Quickstart: websocket-hello 14.0.1.Final
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+...
+...
+[INFO] --- maven-war-plugin:3.2.2:war (default-war) @ websocket-hello ---
+[INFO] Packaging webapp
+[INFO] Assembling webapp [websocket-hello] in [/Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/websocket-hello/target/websocket-hello]
+[INFO] Processing war project
+[INFO] Copying webapp resources [/Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/websocket-hello/src/main/webapp]
+[INFO] Webapp assembled in [54 msecs]
+[INFO] Building war: /Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/websocket-hello/target/websocket-hello.war
+[INFO] 
+[INFO] --- maven-source-plugin:3.0.1:jar-no-fork (attach-sources) @ websocket-hello ---
+[INFO] Building jar: /Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/websocket-hello/target/websocket-hello-sources.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 3.444 s
+[INFO] Finished at: 2019-02-11T22:58:35-08:00
+[INFO] Final Memory: 27M/318M
+[INFO] ------------------------------------------------------------------------
+
+mvn azure-webapp:deploy
+
+mvn azure-webapp:deploy
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Quickstart: websocket-hello 14.0.1.Final
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- azure-webapp-maven-plugin:1.5.3:deploy (default-cli) @ websocket-hello ---
+[INFO] Authenticate with Azure CLI 2.0
+[INFO] Target Web App doesn't exist. Creating a new one...
+[INFO] Creating App Service Plan 'websocket-hello-app-appservice-plan'...
+[INFO] Successfully created App Service Plan.
+[INFO] Successfully created Web App.
+[INFO] Trying to deploy artifact to websocket-hello-app...
+[INFO] Deploying the war file...
+[INFO] Successfully deployed the artifact to https://websocket-hello-app.azurewebsites.net
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 01:41 min
+[INFO] Finished at: 2019-02-11T23:03:56-08:00
+[INFO] Final Memory: 57M/366M
+[INFO] ------------------------------------------------------------------------
+
+```
+
+### Open the Migrated App on App Service Linux
+
+```bash
+open https://websocket-hello-app.azurewebsites.net
+```
+
+![](./media/websocket-hello.jpg)
 
 
-## Demo
 
-A demo app is included to show how to use the project.
+## Congratulations!
 
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
+Congratulations!! You migrated 
+existing Java enterprise workloads to Azure, aka app to App Service Linux and 
+app's messaging system to Azure Service Bus.
 
 ## Resources
 
-(Any additional resources or related projects)
+- [Java Enterprise Guide for App Service on Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-java-enterprise)
+- [Maven Plugin for Azure App Service](https://docs.microsoft.com/en-us/java/api/overview/azure/maven/azure-webapp-maven-plugin/readme?view=azure-java-stable)
+- [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter)
+- [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
+- [Opening an SSH connection from your development machine](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
+- [Azure for Java Developers](https://docs.microsoft.com/en-us/java/azure/)
 
-- Link to supporting information
-- Link to similar sample
-- ...
+---
+
+This project has adopted 
+the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). 
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or 
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) 
+with any additional 
+questions or comments.
