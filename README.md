@@ -382,7 +382,11 @@ INFO: Received message with content Hello, World!
 ## Migrate a message driven enterprise bean to Azure
 
 
+<<<<<<< HEAD
 ### Prepare Environment
+=======
+## Prepare Environment
+>>>>>>> f21b22579fe31b01833c37100505d8e5ed6c7a70
 
 Change directory to MDB:
 
@@ -413,7 +417,11 @@ Then, set environment variables:
 source .scripts/set-env-variables.sh
 ```
 
+<<<<<<< HEAD
 ### Deploy App to App Service Linux
+=======
+## Deploy App to App Service Linux
+>>>>>>> f21b22579fe31b01833c37100505d8e5ed6c7a70
 
 Add [Maven Plugin for Azure App Service](https://github.com/Microsoft/azure-maven-plugins/blob/develop/azure-webapp-maven-plugin/README.md) configuration to POM.xml and deploy
 Message-Driven Bean to WildFly in App Service Linux:
@@ -914,8 +922,20 @@ Deleted /home/site/deployments/tools/jndi.properties
  az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
  az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
  ```
+<<<<<<< HEAD
 
 #### Step 6: Stream WildFly/JBoss logs to a dev machine
+=======
+ 
+ For additional info, please refer to: 
+ 
+ - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter).
+ - [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
+ - [Open SSH session from your development machine to App Service Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
+
+
+## Trouble Shoot Message-Driven Enterprise Bean on Azure by Viewing Logs
+>>>>>>> f21b22579fe31b01833c37100505d8e5ed6c7a70
 
 Configure logs for the deployed Java Web 
 app in App Service Linux:
@@ -931,6 +951,7 @@ Open Java Web app remote log stream from a local machine:
 ```bash
 az webapp log tail --name ${WEBAPP_NAME} \
  --resource-group ${RESOURCEGROUP_NAME}
+<<<<<<< HEAD
 ```
 
 ### Open the Message-Driven Enterprise Bean on Azure
