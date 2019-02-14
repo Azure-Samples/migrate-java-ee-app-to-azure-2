@@ -19,7 +19,7 @@ package org.jboss.as.quickstarts.servlet;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import javax.annotation.Resource;
+//import javax.annotation.Resource;
 //import javax.inject.Inject;
 import javax.jms.Destination;
 import java.util.Hashtable;
@@ -27,12 +27,12 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.jms.JMSContext;
 import javax.naming.Context;
-import javax.jms.JMSDestinationDefinition;
+//import javax.jms.JMSDestinationDefinition;
 import javax.jms.JMSDestinationDefinitions;
 //import javax.jms.JMSConnectionFactoryDefinition;
 import javax.jms.ConnectionFactory;
 import javax.jms.MessageProducer;
-//import javax.jms.Queue;
+import javax.jms.Queue;
 import javax.jms.Topic;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -86,9 +86,9 @@ public class HelloWorldMDBServletClient extends HttpServlet {
     private static final String DEFAULT_PASSWORD = System.getenv("SB_SAS_KEY");
     private static final String INITIAL_CONTEXT_FACTORY = "org.apache.qpid.jms.jndi.JmsInitialContextFactory";
     private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
-    private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE"); 
-        
-    //@Inject
+    private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE");
+
+  //@Inject
     //private JMSContext context;
   //  @Resource(lookup="java:comp/env/AzureSBConnectionFactory")
  //  ConnectionFactory cf;
@@ -96,7 +96,7 @@ public class HelloWorldMDBServletClient extends HttpServlet {
  //  @Resource(lookup = "jmstestqueue")
   //  private Queue queue;
 
-   /* @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")*/
+   // @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")
     private Topic topic;
 
     @Override
@@ -105,7 +105,6 @@ public class HelloWorldMDBServletClient extends HttpServlet {
         PrintWriter out = resp.getWriter();
         out.write("<h1>Quickstart: Example demonstrates the use of <strong>JMS 2.0</strong> and <strong>EJB 3.2 Message-Driven Bean</strong> in JBoss EAP.</h1>");
         try {
-            
             MessageProducer producer = null;
             Hashtable<String, String> hashtable = new Hashtable<>();
             hashtable.put("connectionfactory.SBCF", PROVIDER_URL);
@@ -119,6 +118,10 @@ public class HelloWorldMDBServletClient extends HttpServlet {
             Destination queue = (Destination) context.lookup(destinationString);
             boolean useTopic = req.getParameterMap().keySet().contains("topic");
             final Destination destination = useTopic ? topic : queue;
+
+            // Destination destination = (Destination) namingContext.lookup(destinationString);
+            // boolean useTopic = req.getParameterMap().keySet().contains("topic");
+            // destination = useTopic ? topic : queue;
            // Create Context and send Messages
             try (JMSContext connection = connectionFactory.createContext(System.getenv("SB_SAS_POLICY"), System.getenv("SB_SAS_KEY"))) {
             out.write("<p>Sending messages to <em>" + destination + "</em></p>");
