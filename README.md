@@ -903,7 +903,6 @@ Picked up _JAVA_OPTIONS: -Djava.net.preferIPv4Stack=true
     "outcome" => "success",
     "response-headers" => {"process-state" => "reload-required"}
 }
-Deleted /home/site/deployments/tools/jndi.properties
 ```
 #### Step 5: Restart the remote WildFly app server
      
