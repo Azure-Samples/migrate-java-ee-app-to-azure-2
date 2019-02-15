@@ -32,7 +32,7 @@ import javax.jms.JMSDestinationDefinitions;
 //import javax.jms.JMSConnectionFactoryDefinition;
 import javax.jms.ConnectionFactory;
 import javax.jms.MessageProducer;
-import javax.jms.Queue;
+//import javax.jms.Queue;
 import javax.jms.Topic;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
