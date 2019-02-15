@@ -1,14 +1,3 @@
-### Step ONE - Clone and Prep
-mkdir readyworkshop
-cd readyworkshop
-git clone --recurse-submodules https://github.com/sadigopu/migrate-java-ee-app-to-azure-2
-cd migrate-java-ee-app-to-azure-2
-yes | cp -rf .prep/* .
-
-# DO THIS JUST ONCE - SKIP IN ALL OTHER CASES
-cd quickstart
-mvn clean install
-
 # Prepare environment
 cd ../helloworld-mdb
 cp set-env-variables-template.sh .scripts/set-env-variables.sh
