@@ -5,83 +5,74 @@ git clone --recurse-submodules https://github.com/sadigopu/migrate-java-ee-app-t
 cd migrate-java-ee-app-to-azure-2
 yes | cp -rf .prep/* .
 
-cd quickstart/helloworld-mdb
-mvn package -Dmaven.test.skip=true
+# DO THIS JUST ONCE - SKIP IN ALL OTHER CASES
+cd quickstart
+mvn clean install
 
-### Deploy to Wildfly in App Service Linux
-az login
+# Prepare environment
+cd ../helloworld-mdb
 cp set-env-variables-template.sh .scripts/set-env-variables.sh
-
 ### Modify .scripts/set-env-variables.sh - WebApp
 vi .scripts/set-env-variables.sh
 . .scripts/set-env-variables.sh
 
 
-az servicebus namespace create --name  ${DEFAULT_SBNAMESPACE} \
-                               --resource-group ${RESOURCEGROUP_NAME}
+### Deploy App to Service Linux
+vi pom.xml
 
-az servicebus queue create --name ${SB_QUEUE} \
-                           --namespace-name ${DEFAULT_SBNAMESPACE} \
-                           --resource-group ${RESOURCEGROUP_NAME}
-
-az servicebus queue authorization-rule create --name ${SB_SAS_POLICY} \
-                                              --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                              --queue-name ${SB_QUEUE} \
-                                              --resource-group ${RESOURCEGROUP_NAME} \
-                                              --rights Listen Send
-
-az servicebus queue authorization-rule keys list --name ${SB_SAS_POLICY} \
-                                                 --namespace-name ${DEFAULT_SBNAMESPACE} \
-                                                 --queue-name ${SB_QUEUE} \
-                                                 --resource-group ${RESOURCEGROUP_NAME}
-
-### Modify .scripts/set-env-variables.sh
-#set the DEFAULT_PASSWORD variable to the value of 'primaryKey' from the result of the previous 'keys' CLI command and re-source the environment variables.
-vi .scripts/set-env-variables.sh
-#From the values displayed for the keys, grab the <b>primaryConnectionString": "Endpoint</b> value and put it into .scripts/jndi.properties file for key connectionfactory.SBF.  Also fill the queue value
-vi .scripts/jndi.properties
-. .scripts/set-env-variables.sh
-
-### Deploy Webapp to Azure
-### Add in plugins
 <build>
- <plugins> 
+<plugins> 
+
     <!--*************************************************-->
     <!-- Deploy to WildFly in App Service Linux          -->
     <!--*************************************************-->
+       
     <plugin>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-webapp-maven-plugin</artifactId>
-        <version>1.5.1</version>
+        <version>1.5.3</version>
         <configuration>
+    
             <!-- Web App information -->
-            <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
-            <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
+           <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
+           <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
             <appName>${WEBAPP_NAME}</appName>
             <region>${REGION}</region>
+    
             <!-- Java Runtime Stack for Web App on Linux-->
             <linuxRuntime>wildfly 14-jre8</linuxRuntime>
+            
+            <appSettings>
+                <property>
+                    <name>DEFAULT_SBNAMESPACE</name>
+                    <value>${DEFAULT_SBNAMESPACE}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_POLICY</name>
+                    <value>${SB_SAS_POLICY}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_KEY</name>
+                    <value>${SB_SAS_KEY}</value>
+                </property>
+                <property>
+                    <name>PROVIDER_URL</name>
+                    <value>${PROVIDER_URL}</value>
+                </property>
+                <property>
+                    <name>SB_QUEUE</name>
+                    <value>${SB_QUEUE}</value>
+                </property>
+            </appSettings>
         </configuration>
     </plugin>
-  </plugins>
+   </plugins>
 </build>
 
-#========== Deploy ==================
+mvn package -Dmaven.test.skip=true
 mvn azure-webapp:deploy
 
-### Add AppSettings for Webapp
-az webapp config appsettings set \
- --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} \
- --settings \
- DEFAULT_CONNECTION_FACTORY=${DEFAULT_CONNECTION_FACTORY} \
- DEFAULT_DESTINATION=${DEFAULT_DESTINATION} \
- INITIAL_CONTEXT_FACTORY=org.apache.qpid.jms.jndi.JmsInitialContextFactory \
- DEFAULT_SBNAMESPACE=${DEFAULT_SBNAMESPACE} \
- DEFAULT_USERNAME=${DEFAULT_USERNAME} \
- DEFAULT_PASSWORD=${DEFAULT_PASSWORD} \
- DESTINATION_QUEUE=${DESTINATION_QUEUE} \
- PROVIDER_URL=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000
-
+# STEP TWO - Upload Startup and Binary Artifacts to App through FTP
 ### Get FTP values
 az webapp deployment list-publishing-profiles -g ${RESOURCEGROUP_NAME}  -n ${WEBAPP_NAME}
 ## grab userName and userPWD values and set in env variables.  REMOVE the extra \ char in userName
@@ -117,6 +108,11 @@ az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
 az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
 
 # View the logs
+
+az webapp log config --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME} \
+  --web-server-logging filesystem
+
 az webapp log tail --name ${WEBAPP_NAME} \
  --resource-group ${RESOURCEGROUP_NAME}
 
