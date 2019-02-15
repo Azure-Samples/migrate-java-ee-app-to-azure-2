@@ -1,0 +1,1 @@
+az vm create -g <resourcegroup> -n <myDevVM> --image "/subscriptions/343129b6-cc9a-49f8-8b05-fbebbc594bd1/resourceGroups/AzJavaMigrationRG/providers/Microsoft.Compute/galleries/ReadyGallery/images/ReadyVMImage/versions/1.0.0" --admin-username readyuser  --admin-password <password>

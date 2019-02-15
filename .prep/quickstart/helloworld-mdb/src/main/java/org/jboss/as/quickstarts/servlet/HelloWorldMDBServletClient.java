@@ -79,7 +79,6 @@ public class HelloWorldMDBServletClient extends HttpServlet {
     private static final long serialVersionUID = -8314035702649252239L;
 
     private static final int MSG_COUNT = 5;
-
     private static final String DEFAULT_CONNECTION_FACTORY = "SBCF";
     private static final String DEFAULT_DESTINATION = "QUEUE";
     private static final String DEFAULT_MESSAGE_COUNT = "1";
@@ -89,7 +88,7 @@ public class HelloWorldMDBServletClient extends HttpServlet {
     private static final String PROVIDER_URL = System.getenv("PROVIDER_URL");
     private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE");
 
-    //@Inject
+  //@Inject
     //private JMSContext context;
   //  @Resource(lookup="java:comp/env/AzureSBConnectionFactory")
  //  ConnectionFactory cf;
@@ -97,7 +96,7 @@ public class HelloWorldMDBServletClient extends HttpServlet {
  //  @Resource(lookup = "jmstestqueue")
   //  private Queue queue;
 
-    // @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")
+   // @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")
     private Topic topic;
 
     @Override
@@ -107,16 +106,15 @@ public class HelloWorldMDBServletClient extends HttpServlet {
         out.write("<h1>Quickstart: Example demonstrates the use of <strong>JMS 2.0</strong> and <strong>EJB 3.2 Message-Driven Bean</strong> in JBoss EAP.</h1>");
         try {
             MessageProducer producer = null;
-            Hashtable<String, String> env = new Hashtable<>();
-            env.put("connectionfactory.SBCF", PROVIDER_URL);
-            env.put("queue.QUEUE", DESTINATION_QUEUE);
-            env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-            Context context = new InitialContext(env);
+            Hashtable<String, String> hashtable = new Hashtable<>();
+            hashtable.put("connectionfactory.SBCF", PROVIDER_URL);
+            hashtable.put("queue.QUEUE", DESTINATION_QUEUE);
+            hashtable.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+            Context context = new InitialContext(hashtable);
             // Perform the JNDI lookups
             String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
             ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
             String destinationString = System.getProperty("destination",DEFAULT_DESTINATION);
-
             Destination queue = (Destination) context.lookup(destinationString);
             boolean useTopic = req.getParameterMap().keySet().contains("topic");
             final Destination destination = useTopic ? topic : queue;

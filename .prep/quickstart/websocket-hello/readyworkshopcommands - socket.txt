@@ -1,22 +1,10 @@
-### Step ONE - Clone and Prep
-mkdir readyworkshop
-cd readyworkshop
-git clone --recurse-submodules https://github.com/sadigopu/migrate-java-ee-app-to-azure-2
-cd migrate-Java-EE-app-to-azure-2
-yes | cp -rf .prep/* .
-
-cd quickstart/websocket-hello
-
-mvn package -Dmaven.test.skip=true
-
-### Deploy to Azure - Create the Webapp
-az login
+cd ../websocket-hello
 mkdir .scripts
 cp set-env-variables-template.sh .scripts/set-env-variables.sh
 vi .scripts/set-env-variables.sh
 . .scripts/set-env-variables.sh
 
-### Deploy Webapp to Azure
+### Deploy Webapp to App Service Linux
 ### Add in plugins
 <build>
  <plugins> 
@@ -26,7 +14,7 @@ vi .scripts/set-env-variables.sh
     <plugin>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-webapp-maven-plugin</artifactId>
-        <version>1.5.1</version>
+        <version>1.5.3</version>
         <configuration>
             <!-- Web App information -->
             <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
@@ -40,6 +28,7 @@ vi .scripts/set-env-variables.sh
 </plugins>
 </build>
 
+mvn package
 mvn azure-webapp:deploy
 
 

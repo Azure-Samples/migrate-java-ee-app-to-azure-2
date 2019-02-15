@@ -333,7 +333,7 @@ az servicebus queue authorization-rule keys list \
 
 From the values displayed for the keys, grab the 
 <b>primarykey</b> value. Open the .scripts/set-env-variables.sh 
-file and set the primaryKey as value for variable DEFAULT_PASSWORD.
+file and set the primaryKey as value for variable SB_SAS_KEY.
 
 Export environment variables:
 
