@@ -338,7 +338,7 @@ file and set the primaryKey as value for variable SB_SAS_KEY.
 Export environment variables:
 
 ```bash
-. .scripts/set-env-variables.sh
+source .scripts/set-env-variables.sh
 ```
 
 ### Build and Run Console App
