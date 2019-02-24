@@ -1,0 +1,112 @@
+# Prepare environment
+cd ../helloworld-mdb
+cp set-env-variables-template.sh .scripts/set-env-variables.sh
+### Modify .scripts/set-env-variables.sh - WebApp
+vi .scripts/set-env-variables.sh
+. .scripts/set-env-variables.sh
+
+
+### Deploy App to Service Linux
+vi pom.xml
+
+<build>
+<plugins> 
+
+    <!--*************************************************-->
+    <!-- Deploy to WildFly in App Service Linux          -->
+    <!--*************************************************-->
+       
+    <plugin>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-webapp-maven-plugin</artifactId>
+        <version>1.5.3</version>
+        <configuration>
+    
+            <!-- Web App information -->
+           <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
+           <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
+            <appName>${WEBAPP_NAME}</appName>
+            <region>${REGION}</region>
+    
+            <!-- Java Runtime Stack for Web App on Linux-->
+            <linuxRuntime>wildfly 14-jre8</linuxRuntime>
+            
+            <appSettings>
+                <property>
+                    <name>DEFAULT_SBNAMESPACE</name>
+                    <value>${DEFAULT_SBNAMESPACE}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_POLICY</name>
+                    <value>${SB_SAS_POLICY}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_KEY</name>
+                    <value>${SB_SAS_KEY}</value>
+                </property>
+                <property>
+                    <name>PROVIDER_URL</name>
+                    <value>${PROVIDER_URL}</value>
+                </property>
+                <property>
+                    <name>SB_QUEUE</name>
+                    <value>${SB_QUEUE}</value>
+                </property>
+            </appSettings>
+        </configuration>
+    </plugin>
+   </plugins>
+</build>
+
+mvn package -Dmaven.test.skip=true
+mvn azure-webapp:deploy
+
+# STEP TWO - Upload Startup and Binary Artifacts to App through FTP
+### Get FTP values
+az webapp deployment list-publishing-profiles -g ${RESOURCEGROUP_NAME}  -n ${WEBAPP_NAME}
+## grab userName and userPWD values and set in env variables.  REMOVE the extra \ char in userName
+
+### FTP all files
+pwd
+cd .scripts
+ftp
+open <ftp site>
+ascii
+passive
+
+put startup.sh
+cd site/deployments/tools
+put commands.cli
+put module.xml
+put jndi.properties
+binary
+mput *.jar
+
+bye
+
+## Remove the ^M EOL characters through the ssh
+# ======== first terminal window =========
+az webapp remote-connection create --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} &
+
+# ======== second terminal window ========
+ssh -c aes128-cbc root@localhost -p <port>
+vi startup.sh
+
+#Restart the webapp
+az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+
+# View the logs
+
+az webapp log config --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME} \
+  --web-server-logging filesystem
+
+az webapp log tail --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME}
+
+
+
+
+
+
