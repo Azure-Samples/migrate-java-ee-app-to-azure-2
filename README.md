@@ -1,7 +1,11 @@
 ---
-services: app-service, Service-Bus
-platforms: java
-author: selvasingh, sadigopu
+page_type: sample
+languages:
+- java
+products:
+- azure
+description: "This guide walks you through the process of migrating existing Java EE workloads to Azure, aka:"
+urlFragment: migrate-java-ee-app-to-azure-2
 ---
 
 # Migrate Java EE Apps to Azure
