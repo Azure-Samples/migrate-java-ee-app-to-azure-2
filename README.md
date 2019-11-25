@@ -43,8 +43,22 @@ existing Java EE workloads to Azure, aka:
             * [Step 6: Stream WildFly/JBoss logs to a dev machine](#step-6-stream-wildflyjboss-logs-to-a-dev-machine)
          * [Open the Message-Driven Enterprise Bean on Azure](#open-the-message-driven-enterprise-bean-on-azure)
          * [Additional Info](#additional-info)
-      * [Migrate Java Enterprise App that uses WebSockets](#migrate-java-enterprise-app-that-uses-websockets)
+      * [Migrate a message driven enterprise bean to Azure with property substitution](#migrate-a-message-driven-enterprise-bean-to-azure-with-property-substitution)
+         * [Prepare Environment](#prepare-environment-1)
          * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux-1)
+         * [Configure JMS Resource Adapter ( JMS RA)](#configure-jms-resource-adapter--jms-ra-1)
+            * [Step 1: Understand How to configure WildFly](#step-1-understand-how-to-configure-wildfly-1)
+            * [Step 2 - Upload Startup and Binary Artifacts to App through FTP](#step-2---upload-startup-and-binary-artifacts-to-app-through-ftp-1)
+               * [Get FTP Deployment Credentials](#get-ftp-deployment-credentials-1)
+               * [Upload Startup and Binary Artifacts to App through FTP](#upload-startup-and-binary-artifacts-to-app-through-ftp-1)
+            * [Step 4: Test the JBoss/WildFly Startup Script and CLI Commands to Configure JMS RA](#step-4-test-the-jbosswildfly-startup-script-and-cli-commands-to-configure-jms-ra-1)
+               * [Test the startup.sh script](#test-the-startupsh-script-1)
+            * [Step 5: Restart the remote WildFly app server](#step-5-restart-the-remote-wildfly-app-server-1)
+            * [Step 6: Stream WildFly/JBoss logs to a dev machine](#step-6-stream-wildflyjboss-logs-to-a-dev-machine-1)
+         * [Open the Message-Driven Enterprise Bean on Azure](#open-the-message-driven-enterprise-bean-on-azure-1)
+         * [Additional Info](#additional-info-1)
+      * [Migrate Java Enterprise App that uses WebSockets](#migrate-java-enterprise-app-that-uses-websockets)
+         * [Deploy App to App Service Linux](#deploy-app-to-app-service-linux-2)
          * [Open the Migrated App on App Service Linux](#open-the-migrated-app-on-app-service-linux)
       * [Congratulations!](#congratulations)
       * [Resources](#resources)
@@ -959,6 +973,647 @@ On the log stream from App Service Linux, you will see:
 2019-02-13T03:05:53.977067441Z 03:05:53,976 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 3) Received Message from queue: This is message 3
 2019-02-13T03:05:53.995098869Z 03:05:53,994 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 17) Received Message from queue: This is message 4
 2019-02-13T03:05:54.014198793Z 03:05:54,013 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 18) Received Message from queue: This is message 5
+```
+
+You can verify JMS configuration by opening an SSH connection to the app on 
+App Service Linux and executing the following commands:
+
+```bash
+0cb1ce311a79:/home# /opt/jboss/wildfly/bin/jboss-cli.sh -c
+Picked up _JAVA_OPTIONS: -Djava.net.preferIPv4Stack=true
+[standalone@localhost:9990 /] :read-config-as-xml > config.xml
+[standalone@localhost:9990 /] quit
+
+# check the presence of SBF configuration
+
+0cb1ce311a79:/home# cat config.xml | grep "SBF"
+                        <connection-definition class-name=\"org.jboss.resource.adapter.jms.JmsManagedConnectionFactory\" jndi-name=\"java:/jms/SBF\" pool-name=\"sbf-cd\">
+```
+
+### Additional Info
+
+For additional info, please refer to: 
+ 
+ - [Deploying Generic JMS RA Adapter in JBoss/WildFly](https://access.redhat.com/documentation/en-us/red_hat_jboss_enterprise_application_platform/7.1/html/configuring_messaging/resource_adapters#deploy_configure_generic_jms_resource_adapter)
+ - [JBoss/WildFly CLI Guide](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface)
+ - [Open SSH session from your development machine to App Service Linux](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell)
+
+## Migrate a message driven enterprise bean to Azure with property substitution
+
+
+### Prepare Environment
+
+Change directory to MDB:
+
+```bash
+cd ../helloworld-mdb-propertysubstitution
+```
+
+Set environment variables for binding secrets at runtime, 
+particularly Azure Resource Group name and Azure Service Bus info. 
+You can 
+export them to your local environment, say using the supplied
+Bash shell script template.
+
+```bash
+cp set-env-variables-template.sh .scripts/set-env-variables.sh
+```
+
+Modify `.scripts/set-env-variables.sh` and set Azure Resource Group name, 
+Azure Service Bus info and App Service Linux info. You can copy 
+most of these values from the script of 
+the previous exercise
+`../helloworld-mdb/.scripts/set-env-variables.sh` and add Topic/Subscription info 
+and lookup values.
+
+Then, set environment variables:
+ 
+```bash
+source .scripts/set-env-variables.sh
+```
+
+### Deploy App to App Service Linux
+
+Add [Maven Plugin for Azure App Service](https://github.com/Microsoft/azure-maven-plugins/blob/develop/azure-webapp-maven-plugin/README.md) configuration to POM.xml and deploy
+Message-Driven Bean to WildFly in App Service Linux:
+
+```xml    
+<plugins> 
+
+    <!--*************************************************-->
+    <!-- Deploy to WildFly in App Service Linux          -->
+    <!--*************************************************-->
+       
+    <plugin>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-webapp-maven-plugin</artifactId>
+        <version>1.5.3</version>
+        <configuration>
+    
+            <!-- Web App information -->
+           <resourceGroup>${RESOURCEGROUP_NAME}</resourceGroup>
+           <appServicePlanName>${WEBAPP_PLAN_NAME}</appServicePlanName>
+            <appName>${WEBAPP_NAME}</appName>
+            <region>${REGION}</region>
+    
+            <!-- Java Runtime Stack for Web App on Linux-->
+            <linuxRuntime>wildfly 14-jre8</linuxRuntime>
+            
+            <appSettings>
+                <property>
+                    <name>DEFAULT_SBNAMESPACE</name>
+                    <value>${DEFAULT_SBNAMESPACE}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_POLICY</name>
+                    <value>${SB_SAS_POLICY}</value>
+                </property>
+                <property>
+                    <name>SB_SAS_KEY</name>
+                    <value>${SB_SAS_KEY}</value>
+                </property>
+                <property>
+                    <name>PROVIDER_URL</name>
+                    <value>${PROVIDER_URL}</value>
+                </property>
+                <property>
+                    <name>SB_QUEUE</name>
+                    <value>${SB_QUEUE}</value>
+                </property>
+                <property>
+                    <name>SB_TOPIC</name>
+                    <value>${SB_TOPIC}</value>
+                </property>
+                <property>
+                    <name>SB_SUBSCRIPTION</name>
+                    <value>${SB_SUBSCRIPTION}</value>
+                </property>
+                <property>
+                    <name>PROP_HELLOWORLDMDB_CONN</name>
+                    <value>${PROP_HELLOWORLDMDB_CONN}</value>
+                </property>
+                <property>
+                    <name>PROP_HELLOWORLDMDB_QUEUE</name>
+                    <value>${PROP_HELLOWORLDMDB_QUEUE}</value>
+                </property>
+                 <property>
+                    <name>PROP_HELLOWORLDMDB_TOPIC</name>
+                    <value>${PROP_HELLOWORLDMDB_TOPIC}</value>
+                </property>
+                 <property>
+                    <name>PROP_HELLOWOROLDMDB_SUBSCRIPTION</name>
+                    <value>${PROP_HELLOWOROLDMDB_SUBSCRIPTION}</value>
+                </property>
+            </appSettings>
+        </configuration>
+    </plugin>
+    ...
+</plugins>
+```
+
+Build and Deploy Message-Driven Bean to App Service Linux:
+
+```bash
+mvn package
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Quickstart: helloworld-mdb-propertysubstitution 14.0.1.Final
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+...
+...
+[INFO] --- maven-war-plugin:3.2.2:war (default-war) @ helloworld-mdb-propertysubstitution ---
+[INFO] Packaging webapp
+[INFO] Assembling webapp [helloworld-mdb-propertysubstitution] in [/Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/helloworld-mdb-propertysubstitution/target/helloworld-mdb-propertysubstitution]
+[INFO] Processing war project
+[INFO] Copying webapp resources [/Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/helloworld-mdb-propertysubstitution/src/main/webapp]
+[INFO] Webapp assembled in [84 msecs]
+[INFO] Building war: /Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/helloworld-mdb-propertysubstitution/target/helloworld-mdb-propertysubstitution.war
+[INFO] 
+[INFO] --- maven-source-plugin:3.0.1:jar-no-fork (attach-sources) @ helloworld-mdb-propertysubstitution ---
+[INFO] Building jar: /Users/selvasingh/migrate-java-ee-app-to-azure-2/quickstart/helloworld-mdb-propertysubstitution/target/helloworld-mdb-propertysubstitution-sources.jar
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 3.908 s
+[INFO] Finished at: 2019-02-10T11:37:03-08:00
+[INFO] Final Memory: 34M/413M
+[INFO] ------------------------------------------------------------------------
+
+
+mvn azure-webapp:deploy
+
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Building Quickstart: helloworld-mdb-propertysubstitution 14.0.1.Final
+[INFO] ------------------------------------------------------------------------
+[INFO] 
+[INFO] --- azure-webapp-maven-plugin:1.5.3:deploy (default-cli) @ helloworld-mdb-propertysubstitution ---
+...
+...
+[INFO] Authenticate with Azure CLI 2.0
+[INFO] Target Web App doesn't exist. Creating a new one...
+[INFO] Creating App Service Plan 'helloworld-mdb-propertysubstitution-appservice-plan'...
+[INFO] Successfully created App Service Plan.
+[INFO] Successfully created Web App.
+[INFO] Trying to deploy artifact to helloworld-mdb-propertysubstitution...
+[INFO] Deploying the war file...
+[INFO] Successfully deployed the artifact to https://helloworld-mdb-propertysubstitution.azurewebsites.net
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 02:15 min
+[INFO] Finished at: 2019-02-10T11:41:06-08:00
+[INFO] Final Memory: 55M/362M
+[INFO] ------------------------------------------------------------------------
+
+```
+
+### Configure JMS Resource Adapter ( JMS RA)
+
+There are a few steps to configure a JMS RA which will enable 
+Java EJBs to configure a 
+remote JMS connection factory and queue. 
+This remote setup will point to
+Azure Service Bus, using the [Apache Qpid JMS Provider](https://qpid.apache.org/components/jms/index.html) 
+for the AMQP protocol. 
+
+#### Step 1: Understand How to configure WildFly
+
+In App Service, each instance of an app server is stateless. Therefore, each instance must be 
+configured on startup to support a Wildfly configuration needed by your application. You can configure at 
+startup by supplying a startup Bash script that calls [JBoss/WildFly CLI commands](https://docs.jboss.org/author/display/WFLY/Command+Line+Interface) to setup data sources, messaging 
+ providers and any other dependencies. We will create a startup.sh script and place it in the `/home` 
+ directory of the Web app. The script will:
+ 
+Install a WildFly Generic JMS Provider Module and Configure JMS RA. A `module.xml` 
+describes the Generic JMS Provider Module:
+
+```xml
+<module xmlns="urn:jboss:module:1.1" name="org.jboss.genericjms.provider"> 
+  <resources> 
+      <resource-root path="proton-j-<version>.jar"/> 
+      <resource-root path="qpid-jms-client-<version>jar"/>
+      <resource-root path="slf4j-log4j12-<version>jar"/>
+      <resource-root path="slf4j-api-<version>jar"/>
+      <resource-root path="log4j-<version>jar"/>      
+      <resource-root path="netty-buffer-<version>.jar" />
+      <resource-root path="netty-codec-<version>.jar" />
+      <resource-root path="netty-codec-http-<version>.jar" />
+      <resource-root path="netty-common-<version>.jar" />
+      <resource-root path="netty-handler-<version>.jar" />
+      <resource-root path="netty-resolver-<version>.jar" />
+      <resource-root path="netty-transport-<version>.jar" />
+      <resource-root path="netty-transport-native-epoll-<version>-linux-x86_64.jar" />
+      <resource-root path="netty-transport-native-kqueue-<version>-osx-x86_64.jar" />
+      <resource-root path="netty-transport-native-unix-common-<version>.jar" /> 
+      <resource-root path="qpid-jms-discovery-<version>jar" />
+  </resources> 
+
+   <dependencies> 
+      <module name="javax.api"/> 
+      <module name="javax.jms.api"/> 
+  </dependencies> 
+</module>
+```
+
+Generate a `jndi.properties` file on the fly:
+
+```bash
+echo "Generating jndi.properties file in /home/site/deployments/tools directory"
+echo "connectionfactory.${PROP_HELLOWORLDMDB_CONN}=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000&jms.username=${SB_SAS_POLICY}&jms.password=${SB_SAS_KEY}" > /home/site/deployments/tools/jndi.properties
+echo "queue.${PROP_HELLOWORLDMDB_QUEUE}=${SB_QUEUE}" >> /home/site/deployments/tools/jndi.properties
+echo "topic.${PROP_HELLOWORLDMDB_TOPIC}=${SB_TOPIC}" >> /home/site/deployments/tools/jndi.properties
+echo "queue.${PROP_HELLOWOROLDMDB_SUBSCRIPTION}=${SB_TOPIC}/Subscriptions/${SB_SUBSCRIPTION}" >> /home/site/deployments/tools/jndi.properties
+echo "====== contents of /home/site/deployments/tools/jndi.properties ======"
+cat /home/site/deployments/tools/jndi.properties
+echo "====== EOF /home/site/deployments/tools/jndi.properties ======"
+```
+
+Generate a `commands.cli` file on the fly:
+
+```bash
+echo "Generating commands.cli file for /home/site/deployments/tools directory"
+echo "# Start batching commands" > /home/site/deployments/tools/commands.cli
+echo "batch" >> /home/site/deployments/tools/commands.cli
+echo "# Configure the ee subsystem to enable MDB annotation property substitution" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=ee:write-attribute(name=annotation-property-replacement,value=true)" >> /home/site/deployments/tools/commands.cli
+echo "# Define system properties to be used in the substititution" >> /home/site/deployments/tools/commands.cli
+echo "/system-property=property.helloworldmdb.queue:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_QUEUE})" >> /home/site/deployments/tools/commands.cli
+echo "/system-property=property.helloworldmdb.topic:add(value=java:global/remoteJMS/${PROP_HELLOWOROLDMDB_SUBSCRIPTION})" >> /home/site/deployments/tools/commands.cli
+echo "/system-property=property.connection.factory:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=ee:list-add(name=global-modules, value={\"name\" => \"org.jboss.genericjms.provider\", \"slot\" =>\"main\"}" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=naming/binding=\"java:global/remoteJMS\":add(binding-type=external-context,module=org.jboss.genericjms.provider,class=javax.naming.InitialContext,environment=[java.naming.factory.initial=org.apache.qpid.jms.jndi.JmsInitialContextFactory,org.jboss.as.naming.lookup.by.string=true,java.naming.provider.url=/home/site/deployments/tools/jndi.properties])" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra:add(module=org.jboss.genericjms,transaction-support=XATransaction)" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd:add(class-name=org.jboss.resource.adapter.jms.JmsManagedConnectionFactory, jndi-name=java:/jms/${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd/config-properties=ConnectionFactory:add(value=${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd/config-properties=JndiParameters:add(value=\"java.naming.factory.initial=org.apache.qpid.jms.jndi.JmsInitialContextFactory;java.naming.provider.url=/home/site/deployments/tools/jndi.properties\")" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd:write-attribute(name=security-application,value=true)" >> /home/site/deployments/tools/commands.cli
+echo "/subsystem=ejb3:write-attribute(name=default-resource-adapter-name, value=generic-ra)" >> /home/site/deployments/tools/commands.cli
+echo "# Run the batch commands" >> /home/site/deployments/tools/commands.cli
+echo "run-batch" >> /home/site/deployments/tools/commands.cli
+echo "reload" >> /home/site/deployments/tools/commands.cli
+echo "====== contents of /home/site/deployments/tools/commands.cli ======"
+cat /home/site/deployments/tools/commands.cli
+echo "======= EOF /home/site/deployments/tools/commands.cli ========"
+```
+
+Copy all binary JARs, `module file` and generated `jndi.properties` file to WildFly config location:
+
+```bash
+mkdir /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider
+mkdir /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main
+cp  /home/site/deployments/tools/*.jar /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main/
+cp /home/site/deployments/tools/module.xml /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main/
+cp /home/site/deployments/tools/jndi.properties /opt/jboss/wildfly/standalone/configuration/
+```
+
+These JBoss CLI commands, WildFly/JBoss Generic JMS Provider Module description `module.xml` 
+and JARs are available in
+[quickstart/helloworld-mdb-propertysubstitution/.scripts](https://github.com/Azure-Samples/migrate-Java-EE-app-to-azure-2/tree/master/quickstart/helloworldmdb/.scripts) 
+
+Also, you can directly download Qpid and Proton-j libraries from 
+[Apache Qpid JMS Provider](https://qpid.apache.org/components/jms/index.html) 
+for the AMQP protocol.
+
+#### Step 2 - Upload Startup and Binary Artifacts to App through FTP
+
+##### Get FTP Deployment Credentials
+
+Use Azure CLI to get FTP deployment credentials:
+
+```bash
+az webapp deployment list-publishing-profiles -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+...
+...
+{
+   ...
+   ...
+    "profileName": "helloworld-mdb-propertysubstitution - FTP",
+    "publishMethod": "FTP",
+    "publishUrl": "ftp://waws-prod-mwh-007.ftp.azurewebsites.windows.net/site/wwwroot",
+    "userName": "helloworld-mdb-propertysubstitution\\$helloworld-mdb-propertysubstitution",
+    "userPWD": ================ MASKED ======================,
+    "webSystem": "WebSites"
+}
+   
+```
+
+Store FTP host name, say `waws-prod-mwh-007.ftp.azurewebsites.windows.net`, 
+user name and user password in .scripts/set-env-variables.sh file.
+
+##### Upload Startup and Binary Artifacts to App through FTP
+
+Open an FTP connection to App Service Linux to upload artifacts:
+
+```bash
+cd .scripts
+
+# open FTP
+ftp
+ftp> open waws-prod-mwh-007.ftp.azurewebsites.windows.net
+Trying 52.183.36.81...
+Connected to waws-prod-mwh-007.drip.azurewebsites.windows.net.
+220 Microsoft FTP Service
+Name (waws-prod-mwh-007.ftp.azurewebsites.windows.net:selvasingh): helloworld-mdb\\$helloworld-mdb
+331 Password required
+Password: 
+230 User logged in.
+Remote system type is Windows_NT.
+ftp> ascii
+200 Type set to A.
+ftp> passive
+Passive mode: off; fallback to active mode: off.
+
+# upload startup.sh
+
+ftp> put startup.sh
+local: startup.sh remote: startup.sh
+200 EPRT command successful.
+125 Data connection already open; Transfer starting.
+100% |*********************************************|  1291      211.78 KiB/s    --:-- ETA
+226 Transfer complete.
+1291 bytes sent in 00:00 (42.12 KiB/s)
+
+# move to tools directory
+
+ftp> cd site/deployments/tools
+250 CWD command successful.
+
+# upload module.xml
+
+ftp> put module.xml
+local: module.xml remote: module.xml
+200 EPRT command successful.
+125 Data connection already open; Transfer starting.
+100% |*********************************************|  1280      206.06 KiB/s    --:-- ETA
+226 Transfer complete.
+1280 bytes sent in 00:00 (33.16 KiB/s)
+
+# upload JARs
+
+ftp> binary
+200 Type set to I.
+ftp> mput *.jar
+mput log4j-1.2.17.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10103|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   478 KiB    1.73 MiB/s    00:00 ETA
+226 Transfer complete.
+489884 bytes sent in 00:00 (1.40 MiB/s)
+mput netty-buffer-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10105|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   271 KiB  790.62 KiB/s    00:00 ETA
+226 Transfer complete.
+277778 bytes sent in 00:00 (612.65 KiB/s)
+mput netty-codec-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10101|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   309 KiB    1.42 MiB/s    00:00 ETA
+226 Transfer complete.
+316671 bytes sent in 00:00 (1.20 MiB/s)
+mput netty-codec-http-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10106|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   550 KiB    1.88 MiB/s    00:00 ETA
+226 Transfer complete.
+563215 bytes sent in 00:00 (1.55 MiB/s)
+mput netty-common-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10104|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   573 KiB    2.03 MiB/s    00:00 ETA
+226 Transfer complete.
+586829 bytes sent in 00:00 (1.65 MiB/s)
+mput netty-handler-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10108|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   410 KiB    1.72 MiB/s    00:00 ETA
+226 Transfer complete.
+420485 bytes sent in 00:00 (1.36 MiB/s)
+mput netty-resolver-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10107|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************| 32800        5.49 MiB/s    00:00 ETA
+226 Transfer complete.
+32800 bytes sent in 00:00 (325.36 KiB/s)
+mput netty-transport-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10109|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   452 KiB    1.69 MiB/s    00:00 ETA
+226 Transfer complete.
+463581 bytes sent in 00:00 (1.40 MiB/s)
+mput netty-transport-native-epoll-4.1.32.Final-linux-x86_64.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10110|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   137 KiB    1.85 MiB/s    00:00 ETA
+226 Transfer complete.
+141017 bytes sent in 00:00 (521.44 KiB/s)
+mput netty-transport-native-kqueue-4.1.32.Final-osx-x86_64.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10111|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   107 KiB   18.22 MiB/s    00:00 ETA
+226 Transfer complete.
+109800 bytes sent in 00:00 (143.52 KiB/s)
+mput netty-transport-native-unix-common-4.1.32.Final.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10112|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************| 33470        5.47 MiB/s    00:00 ETA
+226 Transfer complete.
+33470 bytes sent in 00:00 (366.26 KiB/s)
+mput proton-j-0.31.0.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10114|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   719 KiB    1.93 MiB/s    00:00 ETA
+226 Transfer complete.
+736444 bytes sent in 00:00 (1.67 MiB/s)
+mput qpid-jms-client-0.40.0.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10113|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************|   729 KiB    1.89 MiB/s    00:00 ETA
+226 Transfer complete.
+747044 bytes sent in 00:00 (1.63 MiB/s)
+mput qpid-jms-discovery-0.40.0.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10115|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************| 40531       21.01 MiB/s    00:00 ETA
+226 Transfer complete.
+40531 bytes sent in 00:00 (360.08 KiB/s)
+mput slf4j-api-1.7.25.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10116|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************| 41203       59.08 MiB/s    00:00 ETA
+226 Transfer complete.
+41203 bytes sent in 00:00 (338.90 KiB/s)
+mput slf4j-log4j12-1.7.25.jar [anpqy?]? y
+229 Entering Extended Passive Mode (|||10118|)
+125 Data connection already open; Transfer starting.
+100% |*********************************************| 12244        2.10 MiB/s    00:00 ETA
+226 Transfer complete.
+12244 bytes sent in 00:00 (169.29 KiB/s)
+```
+
+#### Step 4: Test the JBoss/WildFly Startup Script and CLI Commands to Configure JMS RA
+
+You can test Bash script for configuring data source by running them on App Service Linux 
+by [opening an SSH connection from your development machine](https://docs.microsoft.com/en-us/azure/app-service/containers/app-service-linux-ssh-support#open-ssh-session-from-remote-shell):
+
+```bash
+# ======== first terminal window =========
+az webapp remote-connection create --resource-group ${RESOURCEGROUP_NAME} --name ${WEBAPP_NAME} &
+[1] 63235
+bash-3.2$ Auto-selecting port: 65428
+SSH is available { username: root, password: Docker! }
+Start your favorite client and connect to port 65428
+Websocket tracing disabled, use --verbose flag to enable
+Successfully connected to local server..
+
+# ======== second terminal window ========
+ssh root@localhost -p 65428
+The authenticity of host '[localhost]:65428 ([127.0.0.1]:65428)' can't be established.
+ECDSA key fingerprint is SHA256:u/VkSFAFjoO9EkBT4zl1pNoWAzWAUdUeRjaHnsXNXlM.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added '[localhost]:65428' (ECDSA) to the list of known hosts.
+root@localhost's password: 
+  _____                               
+  /  _  \ __________ _________   ____  
+ /  /_\  \___   /  |  \_  __ \_/ __ \ 
+/    |    \/    /|  |  /|  | \/\  ___/ 
+\____|__  /_____ \____/ |__|    \___  >
+        \/      \/                  \/ 
+A P P   S E R V I C E   O N   L I N U X
+
+Documentation: http://aka.ms/webapp-linux
+
+54cfe2dfa970:/home# ls -al
+total 12
+drwxrwxrwx    2 nobody   nobody        4096 Feb 11 17:54 .
+drwxr-xr-x   49 root     root          4096 Feb 10 19:40 ..
+drwxrwxrwx    2 nobody   nobody           0 Feb 10 19:40 .mono
+drwxrwxrwx    2 nobody   nobody           0 Feb 10 19:41 LogFiles
+drwxrwxrwx    2 nobody   nobody           0 Feb 10 19:40 d43fc68fefbe78c2a087a46f
+drwxrwxrwx    2 nobody   nobody           0 Feb 10 19:41 site
+-rwxrwxrwx    1 nobody   nobody        1291 Feb 11 17:46 startup.sh
+54cfe2dfa970:/home# 
+
+
+#========= open a vi window to edit startup.sh ============
+c315a18b39d2:/home# vi startup.sh
+
+# ======== vi window =====================
+echo "Generating jndi.properties file in /home/site/deployments/tools directory"^M
+echo "connectionfactory.${PROP_HELLOWORLDMDB_CONN}=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000&jms.username=${SB_SAS_POLICY}&jms.password=${SB_SAS_KEY}" > /home/site/deployments/tools/jndi.properties^M
+echo "queue.${PROP_HELLOWORLDMDB_QUEUE}=${SB_QUEUE}" >> /home/site/deployments/tools/jndi.properties^M
+echo "topic.${PROP_HELLOWORLDMDB_TOPIC}=${SB_TOPIC}" >> /home/site/deployments/tools/jndi.properties^M
+echo "queue.${PROP_HELLOWOROLDMDB_SUBSCRIPTION}=${SB_TOPIC}/Subscriptions/${SB_SUBSCRIPTION}" >> /home/site/deployments/tools/jndi.properties^M
+echo "====== contents of /home/site/deployments/tools/jndi.properties ======"^M
+cat /home/site/deployments/tools/jndi.properties^M
+echo "====== EOF /home/site/deployments/tools/jndi.properties ======"^M
+echo "Generating commands.cli file for /home/site/deployments/tools directory"^M
+echo "# Start batching commands" > /home/site/deployments/tools/commands.cli^M
+echo "batch" >> /home/site/deployments/tools/commands.cli^M
+echo "# Configure the ee subsystem to enable MDB annotation property substitution" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=ee:write-attribute(name=annotation-property-replacement,value=true)" >> /home/site/deployments/tools/commands.cli^M
+echo "# Define system properties to be used in the substititution" >> /home/site/deployments/tools/commands.cli^M
+echo "/system-property=property.helloworldmdb.queue:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_QUEUE})" >> /home/site/deployments/tools/commands.cli^M
+echo "/system-property=property.helloworldmdb.topic:add(value=java:global/remoteJMS/${PROP_HELLOWOROLDMDB_SUBSCRIPTION})" >> /home/site/deployments/tools/commands.cli^M
+echo "/system-property=property.connection.factory:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=ee:list-add(name=global-modules, value={\"name\" => \"org.jboss.genericjms.provider\", \"slot\" =>\"main\"}" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=naming/binding=\"java:global/remoteJMS\":add(binding-type=external-context,module=org.jboss.genericjms.provider,class=javax.naming.InitialContext,environment=[java.naming.factory.initial=org.apache.qpid.jms.jndi.JmsInitialContextFactory,org.jboss.as.naming.lookup.by.string=true,java.naming.provider.url=/home/site/deployments/tools/jndi.properties])" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra:add(module=org.jboss.genericjms,transaction-support=XATransaction)" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd:add(class-name=org.jboss.resource.adapter.jms.JmsManagedConnectionFactory, jndi-name=java:/jms/${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd/config-properties=ConnectionFactory:add(value=${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd/config-properties=JndiParameters:add(value=\"java.naming.factory.initial=org.apache.qpid.jms.jndi.JmsInitialContextFactory;java.naming.provider.url=/home/site/deployments/tools/jndi.properties\")" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=resource-adapters/resource-adapter=generic-ra/connection-definitions=sbf-cd:write-attribute(name=security-application,value=true)" >> /home/site/deployments/tools/commands.cli^M
+echo "/subsystem=ejb3:write-attribute(name=default-resource-adapter-name, value=generic-ra)" >> /home/site/deployments/tools/commands.cli^M
+echo "# Run the batch commands" >> /home/site/deployments/tools/commands.cli^M
+echo "run-batch" >> /home/site/deployments/tools/commands.cli^M
+echo "reload" >> /home/site/deployments/tools/commands.cli^M
+echo "====== contents of /home/site/deployments/tools/commands.cli ======"^M
+cat /home/site/deployments/tools/commands.cli^M
+echo "======= EOF /home/site/deployments/tools/commands.cli ========"^M
+mkdir /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider^M
+mkdir /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main^M
+cp  /home/site/deployments/tools/*.jar /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main/^M
+cp /home/site/deployments/tools/module.xml /opt/jboss/wildfly/modules/system/layers/base/org/jboss/genericjms/provider/main/^M
+cp /home/site/deployments/tools/jndi.properties /opt/jboss/wildfly/standalone/configuration/^M
+/opt/jboss/wildfly/bin/jboss-cli.sh -c --file=/home/site/deployments/tools/commands.cli^M
+echo "Startup Run done"^M
+
+
+## === remove those '^M' end of line characters and save the file
+```
+
+There are alternate ways to remove the end of line characters ([see](http://marcelog.github.io/articles/mac_newline_to_unix_eol.html)).
+
+##### Test the startup.sh script
+
+In the SSH window, execute `startup.sh`:
+
+```bash
+54cfe2dfa970:/home# source startup.sh
+```
+
+The script will run and output any errors if there is a problem in your setup.
+
+#### Step 5: Restart the remote WildFly app server
+     
+ Use Azure CLI to restart the remote WildFly app server:
+    
+ ```bash
+ az webapp stop -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+ az webapp start -g ${RESOURCEGROUP_NAME} -n ${WEBAPP_NAME}
+ ```
+
+#### Step 6: Stream WildFly/JBoss logs to a dev machine
+
+Configure logs for the deployed Java Web 
+app in App Service Linux:
+
+```bash
+az webapp log config --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME} \
+  --web-server-logging filesystem
+```
+
+Open Java Web app remote log stream from a local machine:
+
+```bash
+az webapp log tail --name ${WEBAPP_NAME} \
+ --resource-group ${RESOURCEGROUP_NAME}
+```
+
+### Open the Message-Driven Enterprise Bean on Azure
+
+Open the Web app on App Service Linux:
+
+```bash
+https://helloworld-mdb-propertysubstitution.azurewebsites.net
+```
+
+![](./media/helloworld-mdb.jpg)
+
+On the log stream from App Service Linux, you will see:
+
+```bash
+2019-02-13T03:05:53,821 INFO  [org.apache.qpid.jms.sasl.SaslMechanismFinder] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Best match for SASL auth was: SASL-PLAIN
+2019-02-13T03:05:53,828 INFO  [org.apache.qpid.jms.JmsConnection] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Connection ID:48eae295-9d89-4aa6-85e8-f26a9b43147e:1 connected to remote Broker: amqps://jmsservice.servicebus.windows.net
+2019-02-13T03:05:53.822173661Z 03:05:53,821 INFO  [org.apache.qpid.jms.sasl.SaslMechanismFinder] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Best match for SASL auth was: SASL-PLAIN
+2019-02-13T03:05:53.830453730Z 03:05:53,828 INFO  [org.apache.qpid.jms.JmsConnection] (AmqpProvider :(2):[amqps://jmsservice.servicebus.windows.net:-1]) Connection ID:48eae295-9d89-4aa6-85e8-f26a9b43147e:1 connected to remote Broker: amqps://jmsservice.servicebus.windows.net
+...
+...
+2019-02-13T03:05:53.931890422Z 03:05:53,930 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 1) Received Message from queue: This is message 1
+2019-02-13T03:05:53.958784514Z 03:05:53,957 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 2) Received Message from queue: This is message 2
+2019-02-13T03:05:53.977067441Z 03:05:53,976 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 3) Received Message from queue: This is message 3
+2019-02-13T03:05:53.995098869Z 03:05:53,994 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 17) Received Message from queue: This is message 4
+2019-02-13T03:05:54.014198793Z 03:05:54,013 INFO  [class org.jboss.as.quickstarts.mdb.HelloWorldQueueMDB] (default-threads - 18) Received Message from queue: This is message 5
+```
+
+This demonstrates the usage of your Service Bus Queue. To test your Topic/Subscription, add `?topic` to the URL as shown in the following example:
+
+```bash
+https://helloworld-mdb-propertysubstitution.azurewebsites.net?topic
 ```
 
 You can verify JMS configuration by opening an SSH connection to the app on 
