@@ -18,47 +18,20 @@ package org.jboss.as.quickstarts.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-
-//import javax.annotation.Resource;
-//import javax.inject.Inject;
-import javax.jms.Destination;
 import java.util.Hashtable;
+
+import javax.jms.Destination;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.jms.JMSContext;
 import javax.naming.Context;
-//import javax.jms.JMSDestinationDefinition;
-import javax.jms.JMSDestinationDefinitions;
-//import javax.jms.JMSConnectionFactoryDefinition;
 import javax.jms.ConnectionFactory;
 import javax.jms.MessageProducer;
-//import javax.jms.Queue;
-//import javax.jms.Topic;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-/**
- * Definition of the two JMS destinations used by the quickstart
- * (one queue and one topic).
- */
-
-@JMSDestinationDefinitions(
-    value = {
-      /* @JMSDestinationDefinition(
-            name = "java:/queue/HELLOWORLDMDBQueue",
-            interfaceName = "javax.jms.Queue",
-            destinationName = "HelloWorldMDBQueue"
-        ),
-        @JMSDestinationDefinition(
-            name = "java:/topic/HELLOWORLDMDBTopic",
-            interfaceName = "javax.jms.Topic",
-            destinationName = "HelloWorldMDBTopic"
-        )*/
-    }
-)
 
 /**
  * <p>
@@ -70,7 +43,6 @@ import javax.servlet.http.HttpServletResponse;
  * @HttpServlet}.
  * </p>
  *
- * @author Serge Pagop (spagop@redhat.com)
  *
  */
 @WebServlet("/HelloWorldMDBServletClient")
@@ -89,55 +61,42 @@ public class HelloWorldMDBServletClient extends HttpServlet {
     private static final String DESTINATION_QUEUE = System.getenv("SB_QUEUE");
     private static final String DEFAULT_TOPIC = "TOPIC";
     private static final String DESTINATION_TOPIC = System.getenv("SB_TOPIC");
-    //@Inject
-    //private JMSContext context;
-   //  @Resource(lookup="java:comp/env/AzureSBConnectionFactory")
- //  ConnectionFactory cf;
-   // @Resource(lookup = "java:/queue/HELLOWORLDMDBQueue")
- //  @Resource(lookup = "jmstestqueue")
-  //  private Queue queue;
 
-   /* @Resource(lookup = "java:/topic/HELLOWORLDMDBTopic")*/
-   // private Topic topic;
-
-   @Override
-   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-       resp.setContentType("text/html");
-       PrintWriter out = resp.getWriter();
-       out.write("<h1>Quickstart: Example demonstrates the use of <strong>JMS 2.0</strong> and <strong>EJB 3.2 Message-Driven Bean</strong> in JBoss EAP.</h1>");
-       try {
-           MessageProducer producer = null;
-           Hashtable<String, String> hashtable = new Hashtable<>();
-           hashtable.put("connectionfactory.SBCF", PROVIDER_URL);
-           hashtable.put("queue.QUEUE", DESTINATION_QUEUE);
-hashtable.put("topic.TOPIC", DESTINATION_TOPIC);
-           hashtable.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-           Context context = new InitialContext(hashtable);
-           // Perform the JNDI lookups
-           String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
-           ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
-           String destinationString = System.getProperty("destination",DEFAULT_DESTINATION);
-           Destination queue = (Destination) context.lookup(destinationString);
-destinationString = System.getProperty("destination",DEFAULT_TOPIC);
-Destination topic = (Destination) context.lookup(destinationString);
-boolean useTopic = req.getParameterMap().keySet().contains("topic");
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("text/html");
+        PrintWriter out = resp.getWriter();
+        out.write("<h1>Demo: Enterprise Java Beans use Service Bus as a Java Messaging Service provider</h1>");
+        try {
+            MessageProducer producer = null;
+            Hashtable<String, String> hashtable = new Hashtable<>();
+            hashtable.put("connectionfactory.SBCF", PROVIDER_URL);
+            hashtable.put("queue.QUEUE", DESTINATION_QUEUE);
+            hashtable.put("topic.TOPIC", DESTINATION_TOPIC);
+            hashtable.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+            Context context = new InitialContext(hashtable);
+            // Perform the JNDI lookups
+            String connectionFactoryString = System.getProperty("connection.factory", DEFAULT_CONNECTION_FACTORY);
+            ConnectionFactory connectionFactory = (ConnectionFactory) context.lookup(connectionFactoryString);
+            String destinationString = System.getProperty("destination",DEFAULT_DESTINATION);
+            Destination queue = (Destination) context.lookup(destinationString);
+            destinationString = System.getProperty("destination",DEFAULT_TOPIC);
+            Destination topic = (Destination) context.lookup(destinationString);
+            boolean useTopic = req.getParameterMap().keySet().contains("topic");
             final Destination destination = useTopic ? topic : queue;
-           // Create Context and send Messages
-            try (JMSContext connection = connectionFactory.createContext(System.getenv("SB_SAS_POLICY"), System.getenv("SB_SAS_KEY")))
-{
-            out.write("<p>Sending messages to <em>" + destination + "</em></p>");
-            out.write("<h2>The following messages will be sent to the destination:</h2>");
-            for (int i = 0; i < MSG_COUNT; i++) {
-                String text = "This is message " + (i + 1);
-                connection.createProducer().send(destination,text);
-                out.write("Message (" + i + "): " + text + "</br>");
+            // Create Context and send Messages
+            try (JMSContext connection = connectionFactory.createContext(System.getenv("SB_SAS_POLICY"), System.getenv("SB_SAS_KEY"))) {
+                out.write("<h2>The following messages will be sent to the destination: <em>" + destination + "</em></h2>");
+                for (int i = 0; i < MSG_COUNT; i++) {
+                    String text = "This is message " + (i + 1);
+                    connection.createProducer().send(destination,text);
+                    out.write("Message (" + (i + 1)+ "): " + text + "</br>");
+                }
+                out.write("<h2>Go to App Service Log Stream to see the result of messages processing.</h2>");
             }
-            out.write("<p><i>Go to your JBoss EAP server console or server log to see the result of messages processing.</i></p>");
-         }
         } catch( NamingException e) {
-          out.write("Exception" + e.getMessage());
-        }
-        finally {
+            out.write("Exception" + e.getMessage());
+        } finally {
             if (out != null) {
                 out.flush();
                 out.close();
