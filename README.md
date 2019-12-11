@@ -299,6 +299,10 @@ Log into Azure using CLI
 ```bash
 az login
 ```
+Set the subscription ID you want to use
+```bash
+az account set --subscription <subscription ID>
+```
 Set environment variables for binding secrets at runtime, 
 particularly Azure Resource Group name and Azure Service Bus info. 
 You can 
@@ -1085,10 +1089,6 @@ Message-Driven Bean to WildFly in App Service Linux:
                     <value>${SB_TOPIC}</value>
                 </property>
                 <property>
-                    <name>SB_SUBSCRIPTION</name>
-                    <value>${SB_SUBSCRIPTION}</value>
-                </property>
-                <property>
                     <name>PROP_HELLOWORLDMDB_CONN</name>
                     <value>${PROP_HELLOWORLDMDB_CONN}</value>
                 </property>
@@ -1099,10 +1099,6 @@ Message-Driven Bean to WildFly in App Service Linux:
                  <property>
                     <name>PROP_HELLOWORLDMDB_TOPIC</name>
                     <value>${PROP_HELLOWORLDMDB_TOPIC}</value>
-                </property>
-                 <property>
-                    <name>PROP_HELLOWOROLDMDB_SUBSCRIPTION</name>
-                    <value>${PROP_HELLOWOROLDMDB_SUBSCRIPTION}</value>
                 </property>
             </appSettings>
         </configuration>
@@ -1225,7 +1221,6 @@ echo "Generating jndi.properties file in /home/site/deployments/tools directory"
 echo "connectionfactory.${PROP_HELLOWORLDMDB_CONN}=amqps://${DEFAULT_SBNAMESPACE}.servicebus.windows.net?amqp.idleTimeout=120000&jms.username=${SB_SAS_POLICY}&jms.password=${SB_SAS_KEY}" > /home/site/deployments/tools/jndi.properties
 echo "queue.${PROP_HELLOWORLDMDB_QUEUE}=${SB_QUEUE}" >> /home/site/deployments/tools/jndi.properties
 echo "topic.${PROP_HELLOWORLDMDB_TOPIC}=${SB_TOPIC}" >> /home/site/deployments/tools/jndi.properties
-echo "queue.${PROP_HELLOWOROLDMDB_SUBSCRIPTION}=${SB_TOPIC}/Subscriptions/${SB_SUBSCRIPTION}" >> /home/site/deployments/tools/jndi.properties
 echo "====== contents of /home/site/deployments/tools/jndi.properties ======"
 cat /home/site/deployments/tools/jndi.properties
 echo "====== EOF /home/site/deployments/tools/jndi.properties ======"
@@ -1241,7 +1236,7 @@ echo "# Configure the ee subsystem to enable MDB annotation property substitutio
 echo "/subsystem=ee:write-attribute(name=annotation-property-replacement,value=true)" >> /home/site/deployments/tools/commands.cli
 echo "# Define system properties to be used in the substititution" >> /home/site/deployments/tools/commands.cli
 echo "/system-property=property.helloworldmdb.queue:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_QUEUE})" >> /home/site/deployments/tools/commands.cli
-echo "/system-property=property.helloworldmdb.topic:add(value=java:global/remoteJMS/${PROP_HELLOWOROLDMDB_SUBSCRIPTION})" >> /home/site/deployments/tools/commands.cli
+echo "/system-property=property.helloworldmdb.topic:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_TOPIC})" >> /home/site/deployments/tools/commands.cli
 echo "/system-property=property.connection.factory:add(value=java:global/remoteJMS/${PROP_HELLOWORLDMDB_CONN})" >> /home/site/deployments/tools/commands.cli
 echo "/subsystem=ee:list-add(name=global-modules, value={\"name\" => \"org.jboss.genericjms.provider\", \"slot\" =>\"main\"}" >> /home/site/deployments/tools/commands.cli
 echo "/subsystem=naming/binding=\"java:global/remoteJMS\":add(binding-type=external-context,module=org.jboss.genericjms.provider,class=javax.naming.InitialContext,environment=[java.naming.factory.initial=org.apache.qpid.jms.jndi.JmsInitialContextFactory,org.jboss.as.naming.lookup.by.string=true,java.naming.provider.url=/home/site/deployments/tools/jndi.properties])" >> /home/site/deployments/tools/commands.cli
