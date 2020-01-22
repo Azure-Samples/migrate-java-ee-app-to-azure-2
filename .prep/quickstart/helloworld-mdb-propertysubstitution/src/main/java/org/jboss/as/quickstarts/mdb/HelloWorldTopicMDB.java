@@ -27,6 +27,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
+
 /**
  * <p>
  * A simple Message Driven Bean that asynchronously receives and processes the messages that are sent to the topic.
@@ -37,29 +38,32 @@ import javax.ejb.TransactionManagementType;
  */
 @TransactionManagement(TransactionManagementType.BEAN)
 @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
-@MessageDriven(name = "HelloWorldQTopicMDB", activationConfig = {
-   @ActivationConfigProperty(propertyName = "connectionFactory", propertyValue = "${property.connection.factory}"),
-   @ActivationConfigProperty(propertyName = "destinationLookup", propertyValue = "${property.helloworldmdb.topic}"),
-   @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Queue"),
-   @ActivationConfigProperty(propertyName = "acknowledgeMode", propertyValue = "Auto-acknowledge") })
+@MessageDriven(name = "HelloWorldTopicMDB", activationConfig = {
+        @ActivationConfigProperty(propertyName = "connectionFactory", propertyValue = "${property.connection.factory}"),
+        @ActivationConfigProperty(propertyName = "destinationLookup", propertyValue = "${property.helloworldmdb.topic}"),
+        @ActivationConfigProperty(propertyName = "destinationType", propertyValue = "javax.jms.Topic"),
+        @ActivationConfigProperty(propertyName = "acknowledgeMode", propertyValue = "Auto-acknowledge"),
+        @ActivationConfigProperty(propertyName = "subscriptionDurability", propertyValue = "Durable"),
+        @ActivationConfigProperty(propertyName = "clientId", propertyValue = "client-1"),
+        @ActivationConfigProperty(propertyName = "subscriptionName", propertyValue = "durable-subscription-1") })
 public class HelloWorldTopicMDB implements MessageListener {
 
-   private static final Logger LOGGER = Logger.getLogger(HelloWorldTopicMDB.class.toString());
+    private static final Logger LOGGER = Logger.getLogger(HelloWorldTopicMDB.class.toString());
 
-   /**
+    /**
     * @see MessageListener#onMessage(Message)
     */
-  public void onMessage(Message rcvMessage) {
-       TextMessage msg = null;
-       try {
-           if (rcvMessage instanceof TextMessage) {
-               msg = (TextMessage) rcvMessage;
-               LOGGER.info("Received Message from topic: " + msg.getText());
-           } else {
-               LOGGER.warning("Message of wrong type: " + rcvMessage.getClass().getName());
-           }
-       } catch (JMSException e) {
-           throw new RuntimeException(e);
-       }
-   }
+    public void onMessage(Message rcvMessage) {
+        TextMessage msg = null;
+        try {
+            if (rcvMessage instanceof TextMessage) {
+                msg = (TextMessage) rcvMessage;
+                LOGGER.info("Received Message from topic: " + msg.getText());
+            } else {
+                LOGGER.warning("Message of wrong type: " + rcvMessage.getClass().getName());
+            }
+        } catch (JMSException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

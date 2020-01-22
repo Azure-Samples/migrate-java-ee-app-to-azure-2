@@ -124,10 +124,6 @@
                     <value>${SB_TOPIC}</value>
                 </property>
                 <property>
-                    <name>SB_SUBSCRIPTION</name>
-                    <value>${SB_SUBSCRIPTION}</value>
-                </property>
-                <property>
                     <name>PROP_HELLOWORLDMDB_CONN</name>
                     <value>${PROP_HELLOWORLDMDB_CONN}</value>
                 </property>
@@ -138,10 +134,6 @@
                  <property>
                     <name>PROP_HELLOWORLDMDB_TOPIC</name>
                     <value>${PROP_HELLOWORLDMDB_TOPIC}</value>
-                </property>
-                 <property>
-                    <name>PROP_HELLOWOROLDMDB_SUBSCRIPTION</name>
-                    <value>${PROP_HELLOWOROLDMDB_SUBSCRIPTION}</value>
                 </property>
             </appSettings>
         </configuration>
